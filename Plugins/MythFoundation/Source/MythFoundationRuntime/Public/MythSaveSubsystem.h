@@ -1,36 +1,41 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "MythCampaignTypes.h"
 #include "MythSaveSubsystem.generated.h"
-
 class UMythSaveGame;
+DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FMythSaveFinished,bool,bSuccess);
 
-/** Synchronous prototype slot. Replace with snapshot + async writer before shipping. */
+/** One owner for campaign state. All transactions operate on a game-thread snapshot. */
 UCLASS()
 class MYTHFOUNDATIONRUNTIME_API UMythSaveSubsystem : public UGameInstanceSubsystem
 {
     GENERATED_BODY()
 public:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
-
-    UFUNCTION(BlueprintCallable, Category="Save")
-    bool SavePlayerState(const FTransform& Transform, float Health);
-
-    UFUNCTION(BlueprintCallable, Category="Save")
-    bool RecordBossDefeat(FName BossId);
-
-    UFUNCTION(BlueprintPure, Category="Save")
-    bool IsBossDefeated(FName BossId) const;
-
-    UFUNCTION(BlueprintPure, Category="Save")
-    bool GetSavedPlayerState(FTransform& OutTransform, float& OutHealth) const;
-
-    UFUNCTION(BlueprintCallable, Category="Save")
-    bool ReloadFromDisk();
-
+    UPROPERTY(BlueprintAssignable,Category="Save") FMythSaveFinished OnSaveFinished;
+    UFUNCTION(BlueprintCallable,Category="Save") bool ReloadFromDisk();
+    UFUNCTION(BlueprintPure,Category="Save") FMythCampaignSnapshot GetSnapshot() const;
+    /** Stage a complete validated snapshot. Set bFlush immediately only at safe boundaries. */
+    UFUNCTION(BlueprintCallable,Category="Save") bool SetSnapshot(const FMythCampaignSnapshot& NewSnapshot, bool bFlushNow = false);
+    UFUNCTION(BlueprintCallable,Category="Save") bool FlushToDisk();
+    UFUNCTION(BlueprintCallable,Category="Save") bool RequestAsyncSave();
+    UFUNCTION(BlueprintPure,Category="Save") bool IsDirty() const { return bDirty; }
+    // Kept for compatibility with the v0.2 character/Boss APIs.
+    UFUNCTION(BlueprintCallable,Category="Save") bool SavePlayerState(const FTransform& Transform,float Health);
+    UFUNCTION(BlueprintCallable,Category="Save") bool RecordBossDefeat(FName BossId);
+    UFUNCTION(BlueprintPure,Category="Save") bool IsBossDefeated(FName BossId) const;
+    UFUNCTION(BlueprintPure,Category="Save") bool GetSavedPlayerState(FTransform& OutTransform,float& OutHealth) const;
 private:
-    bool CommitToDisk();
-    UPROPERTY(Transient)
-    TObjectPtr<UMythSaveGame> CurrentSave;
+    UPROPERTY(Transient) TObjectPtr<UMythSaveGame> CurrentSave;
+    UPROPERTY(Transient) TObjectPtr<UMythSaveGame> PendingSave;
+    bool bDirty = false;
+    bool bSaving = false;
+    bool bQueuedSave = false;
+    uint64 MutationRevision = 0;
+    uint64 InFlightRevision = 0;
     const FString SlotName = TEXT("Campaign_00");
+    bool ValidateSnapshot(const FMythCampaignSnapshot& Value) const;
+    void MigrateLoadedSave();
+    void OnAsyncSaveCompleted(const FString& Slot, int32 UserIndex, bool bSuccess);
 };

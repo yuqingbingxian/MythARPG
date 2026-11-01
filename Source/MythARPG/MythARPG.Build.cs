@@ -5,7 +5,7 @@ public class MythARPG : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicDependencyModuleNames.AddRange(new string[] {
-            "Core", "CoreUObject", "Engine", "MythFoundationRuntime", "MythGameplayRuntime"
+            "Core", "CoreUObject", "Engine", "MythFoundationRuntime", "MythGameplayRuntime", "MythSystemsRuntime"
         });
     }
 }

@@ -1,4 +1,5 @@
 #include "MythBossCharacter.h"
+#include "MythBossPhaseDefinition.h"
 #include "MythSaveSubsystem.h"
 #include "MythEventSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -19,6 +20,7 @@ void AMythBossCharacter::BeginPlay()
             return;
         }
     }
+    if(PhaseDefinition && !PhaseDefinition->Phases.IsEmpty())PhaseIndex=1;
     OnPhaseEntered(PhaseIndex);
 }
 
@@ -27,10 +29,17 @@ void AMythBossCharacter::HandleHealthChanged(float NewHealth)
     Super::HandleHealthChanged(NewHealth);
     if (bDead || GetMaxHealth() <= 0.f) return;
     const float Ratio = NewHealth / GetMaxHealth();
-    const int32 DesiredPhase = Ratio <= 0.33f ? 3 : Ratio <= 0.66f ? 2 : 1;
-    if (DesiredPhase > PhaseIndex && NewHealth > 0.f)
+    const int32 DesiredPhase = PhaseDefinition && !PhaseDefinition->Phases.IsEmpty()
+        ? PhaseDefinition->CalculatePhaseIndex(Ratio,PhaseIndex-1)+1
+        : (Ratio<=.33f?3:(Ratio<=.66f?2:1));
+    if(DesiredPhase > PhaseIndex && NewHealth > 0.f)
     {
-        PhaseIndex = DesiredPhase;
+        PhaseIndex=DesiredPhase;
+        if(PhaseDefinition && PhaseDefinition->Phases.IsValidIndex(PhaseIndex-1))
+        {
+            const FMythBossPhase& P=PhaseDefinition->Phases[PhaseIndex-1];
+            OnBossPhaseCue(P.PhaseId,P.CinematicCue);
+        }
         OnPhaseEntered(PhaseIndex);
     }
 }

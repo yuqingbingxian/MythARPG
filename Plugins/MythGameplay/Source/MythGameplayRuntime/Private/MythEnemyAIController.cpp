@@ -1,4 +1,5 @@
 #include "MythEnemyAIController.h"
+#include "MythCombatDirectorSubsystem.h"
 #include "MythEnemyCharacter.h"
 #include "MythPlayerCharacter.h"
 #include "Kismet/GameplayStatics.h"
@@ -20,6 +21,7 @@ void AMythEnemyAIController::OnPossess(APawn* InPawn)
 void AMythEnemyAIController::OnUnPossess()
 {
     GetWorldTimerManager().ClearTimer(DecisionTimer);
+    if (UWorld* W=GetWorld()) if (UMythCombatDirectorSubsystem* Director=W->GetSubsystem<UMythCombatDirectorSubsystem>()) Director->ReleaseAttack(GetPawn());
     Super::OnUnPossess();
 }
 
@@ -49,6 +51,11 @@ void AMythEnemyAIController::EvaluateCombat()
     if (!Direction.IsNearlyZero()) Enemy->SetActorRotation(Direction.Rotation());
     if (GetWorld()->GetTimeSeconds() - LastAttackTime >= 1.25f)
     {
-        if (Enemy->RequestMeleeAbility()) LastAttackTime = GetWorld()->GetTimeSeconds();
+        UMythCombatDirectorSubsystem* Director=GetWorld()->GetSubsystem<UMythCombatDirectorSubsystem>();
+        if(!Director || Director->TryReserveAttack(Enemy,Player,1.5f))
+        {
+            if (Enemy->RequestMeleeAbility()) LastAttackTime=GetWorld()->GetTimeSeconds();
+            else if(Director)Director->ReleaseAttack(Enemy);
+        }
     }
 }

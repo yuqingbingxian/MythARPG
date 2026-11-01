@@ -1,0 +1,25 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.3",
+  "FriendlyName": "Myth Systems",
+  "Category": "Gameplay",
+  "CanContainContent": true,
+  "Plugins": [
+    {
+      "Name": "MythFoundation",
+      "Enabled": true
+    },
+    {
+      "Name": "MythGameplay",
+      "Enabled": true
+    }
+  ],
+  "Modules": [
+    {
+      "Name": "MythSystemsRuntime",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}
