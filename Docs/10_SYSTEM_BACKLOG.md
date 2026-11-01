@@ -24,3 +24,12 @@ Status labels: `source` = implemented source but uncompiled, `contract` = API on
 
 Do not add Chapter01 content until generic runtime contracts are stable enough
 for a vertical slice. Do not present source-only subsystems as production complete.
+
+## v0.5 progress update
+
+- Guard/parry/guard-break: new source with stamina and frontal checks; hit reactions and cinematic finishing remain pending.
+- AI sight acquisition + weighted data-driven attacks: new source, **not** StateTree/EQS-complete.
+- Conditional quest branches and one-time narrative sequences: new source; durable signal outbox pending.
+- UI routing, HUD attribute subscriptions and preferences: new source; widgets, mixes and key rebinding pending.
+- Added data asset audits and three source tests; UE5.8 build/PIE/packaging still required.
+- Updated implementation notes: `Docs/12_FOUNDATION_V05.md`.

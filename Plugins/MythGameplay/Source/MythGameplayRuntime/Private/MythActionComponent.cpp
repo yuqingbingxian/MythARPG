@@ -4,6 +4,7 @@
 #include "MythMeleeAbility.h"
 #include "MythDodgeAbility.h"
 #include "MythWeaponTraceComponent.h"
+#include "MythDefenseComponent.h"
 #include "AbilitySystemComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Components/SkeletalMeshComponent.h"
@@ -78,7 +79,8 @@ bool UMythActionComponent::SpendStamina(float Amount)
 bool UMythActionComponent::RequestAttack(EMythAttackInput Input)
 {
     AMythCombatCharacter* Owner=Cast<AMythCombatCharacter>(GetOwner());
-    if (!Owner || Owner->IsDead() || Owner->IsStaggered()) return false;
+    if (!Owner || Owner->IsDead() || Owner->IsStaggered() ||
+        (Owner->GetDefenseComponent() && Owner->GetDefenseComponent()->IsGuarding()))return false;
     if (State==EMythActionState::Attacking)
     {
         if (!FindNext(CurrentNode.NodeId,Input)) return false;
@@ -216,6 +218,8 @@ void UMythActionComponent::AbortAttack(UMythMeleeAbility* Ability)
 bool UMythActionComponent::BeginDodge(UMythDodgeAbility* Ability)
 {
     if (State!=EMythActionState::Idle || !Ability || !SpendStamina(DodgeStaminaCost)) return false;
+    if(AMythCombatCharacter* Combatant=Cast<AMythCombatCharacter>(GetOwner()))
+        if(UMythDefenseComponent* Defense=Combatant->GetDefenseComponent())Defense->ResetDefense();
     State=EMythActionState::Dodging;DodgeAbility=Ability;
     SetStateTag(TEXT("State.Movement.Dodging"),true);
     ACharacter* Owner=Cast<ACharacter>(GetOwner());

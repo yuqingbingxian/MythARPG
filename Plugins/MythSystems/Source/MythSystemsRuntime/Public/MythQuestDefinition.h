@@ -14,12 +14,21 @@ struct FMythQuestObjective
     UPROPERTY(EditAnywhere,BlueprintReadOnly,meta=(ClampMin="1")) int32 RequiredCount=1;
 };
 USTRUCT(BlueprintType)
+struct FMythQuestBranch
+{
+    GENERATED_BODY()
+    UPROPERTY(EditAnywhere,BlueprintReadOnly) FName RequiredWorldFlag=NAME_None;
+    UPROPERTY(EditAnywhere,BlueprintReadOnly) int32 MinimumValue=1;
+    UPROPERTY(EditAnywhere,BlueprintReadOnly) FName NextStageId=NAME_None;
+};
+USTRUCT(BlueprintType)
 struct FMythQuestStage
 {
     GENERATED_BODY()
     UPROPERTY(EditAnywhere,BlueprintReadOnly) FName StageId=NAME_None;
     UPROPERTY(EditAnywhere,BlueprintReadOnly) TArray<FMythQuestObjective> Objectives;
-    UPROPERTY(EditAnywhere,BlueprintReadOnly) FName NextStageId=NAME_None; // None = quest complete.
+    UPROPERTY(EditAnywhere,BlueprintReadOnly) FName NextStageId=NAME_None; // Fallback; None = quest complete.
+    UPROPERTY(EditAnywhere,BlueprintReadOnly) TArray<FMythQuestBranch> ConditionalBranches;
     UPROPERTY(EditAnywhere,BlueprintReadOnly) FName WorldFlagOnCompletion=NAME_None;
 };
 class UMythRewardDefinition;
@@ -37,6 +46,7 @@ public:
     virtual FPrimaryAssetId GetPrimaryAssetId()const override
     {return FPrimaryAssetId(TEXT("Quest"),QuestId.IsNone()?GetFName():QuestId);}
     const FMythQuestStage* FindStage(FName StageId) const;
+    FName ResolveNextStage(const FMythQuestStage& Stage,const TMap<FName,int32>& WorldValues)const;
     bool ValidateDefinition(FString& Error) const;
 };
 UCLASS(BlueprintType)

@@ -6,7 +6,7 @@ public class MythSystemsRuntime : ModuleRules
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicDependencyModuleNames.AddRange(new string[] {
             "Core", "CoreUObject", "Engine", "GameplayTags", "GameplayAbilities",
-            "MythFoundationRuntime", "MythGameplayRuntime"
+            "MythFoundationRuntime", "MythGameplayRuntime", "UMG", "Slate", "SlateCore"
         });
     }
 }

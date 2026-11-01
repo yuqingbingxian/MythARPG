@@ -33,3 +33,12 @@ Add future `.uasset`/`.umap` files via Git LFS per `.gitattributes`.
 
 See [`Docs/11_FOUNDATION_V04.md`](Docs/11_FOUNDATION_V04.md) for crash-tolerant PC saves,
 chapter travel and editor content audits. Requires an actual UE 5.8 build and runtime tests.
+
+
+### v0.5 shared framework source update
+
+Adds combat guard/parry, sight perception and AI attack profiles, branching quests and
+transactional narrative commands, widget layer routing, HUD data observation, local
+settings persistence, extra editor checks and tests. See
+[`Docs/12_FOUNDATION_V05.md`](Docs/12_FOUNDATION_V05.md).
+**Source is not UE5.8 compiled or runtime validated.**

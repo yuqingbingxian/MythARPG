@@ -2,6 +2,7 @@
 #include "CoreMinimal.h"
 #include "Engine/PrimaryDataAsset.h"
 #include "MythDialogueDefinition.generated.h"
+class UMythNarrativeCommandDefinition;
 USTRUCT(BlueprintType)
 struct FMythDialogueChoice
 {
@@ -10,6 +11,7 @@ struct FMythDialogueChoice
     UPROPERTY(EditAnywhere,BlueprintReadOnly) FName NextNodeId=NAME_None;
     UPROPERTY(EditAnywhere,BlueprintReadOnly) FName RequiredWorldFlag=NAME_None;
     UPROPERTY(EditAnywhere,BlueprintReadOnly) FName SetWorldFlag=NAME_None;
+    UPROPERTY(EditAnywhere,BlueprintReadOnly) TSoftObjectPtr<UMythNarrativeCommandDefinition> ActionSequence;
 };
 USTRUCT(BlueprintType)
 struct FMythDialogueNode

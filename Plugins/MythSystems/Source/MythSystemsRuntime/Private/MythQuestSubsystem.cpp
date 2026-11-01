@@ -81,7 +81,8 @@ bool UMythQuestSubsystem::ReportGameplayEvent(FName EventName,FName TargetId,int
         if(!bComplete)continue;
         if(!Stage->WorldFlagOnCompletion.IsNone())S.WorldValues.Add(Stage->WorldFlagOnCompletion,1);
         R.ObjectiveCounts.Reset();
-        if(Stage->NextStageId.IsNone())
+        const FName Next=Def->ResolveNextStage(*Stage,S.WorldValues);
+        if(Next.IsNone())
         {
             if(!Def->CompletionReward.IsNull())
             {
@@ -93,7 +94,7 @@ bool UMythQuestSubsystem::ReportGameplayEvent(FName EventName,FName TargetId,int
         }
         else
         {
-            R.StageId=Stage->NextStageId;
+            R.StageId=Next;
             Advances.Add(TPair<FName,FName>(R.QuestId,R.StageId));
         }
     }

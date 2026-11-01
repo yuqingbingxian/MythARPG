@@ -7,6 +7,8 @@
 #include "MythDodgeAbility.h"
 #include "MythActionComponent.h"
 #include "MythWeaponTraceComponent.h"
+#include "MythDefenseComponent.h"
+#include "MythDefenseComponent.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
@@ -24,6 +26,8 @@ AMythCombatCharacter::AMythCombatCharacter()
     AttributeSet=CreateDefaultSubobject<UMythAttributeSet>(TEXT("AttributeSet"));
     ActionComponent=CreateDefaultSubobject<UMythActionComponent>(TEXT("ActionComponent"));
     WeaponTrace=CreateDefaultSubobject<UMythWeaponTraceComponent>(TEXT("WeaponTrace"));
+    DefenseComponent=CreateDefaultSubobject<UMythDefenseComponent>(TEXT("Defense"));
+    DefenseComponent=CreateDefaultSubobject<UMythDefenseComponent>(TEXT("Defense"));
     DebugMesh=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DebugVisual"));
     DebugMesh->SetupAttachment(GetRootComponent());
     DebugMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -92,7 +96,18 @@ void AMythCombatCharacter::ApplyMeleeHit(AMythCombatCharacter* Target,const FHit
     if(!Target || Target==this || bDead || Target->IsDead() || Target->Faction==Faction ||
        Faction==EMythFaction::Neutral || Target->Faction==EMythFaction::Neutral)return;
     if(Target->AbilitySystem->HasMatchingGameplayTag(FGameplayTag::RequestGameplayTag(FName(TEXT("State.Defense.Invulnerable")))))return;
-    const float Damage=FMythCombatMath::MitigatedDamage(DefaultMeleeDamage*Scale,Target->AttributeSet->GetDefense());
+    const float RawDamage=FMath::Max(0.f,DefaultMeleeDamage*Scale);
+    const FMythDefenseResolution Defense=Target->DefenseComponent
+        ? Target->DefenseComponent->ResolveIncoming(this,RawDamage,PoiseAmount)
+        : FMythDefenseResolution();
+    if(Defense.Outcome==EMythDefenseOutcome::Parried)
+    {
+        AbilitySystem->CancelAllAbilities();ActionComponent->ForceReset();
+        return;
+    }
+    const float Damage=FMythCombatMath::MitigatedDamage(RawDamage*Defense.HealthMultiplier,
+        Target->AttributeSet->GetDefense());
+    PoiseAmount*=Defense.PoiseMultiplier;
     if(Damage<=0.f && PoiseAmount<=0.f)return;
     FGameplayEffectContextHandle Context=AbilitySystem->MakeEffectContext();
     Context.AddSourceObject(this);
@@ -114,6 +129,7 @@ void AMythCombatCharacter::OnPoiseAttributeChanged(const FOnAttributeChangeData&
 {
     if(bDead || bStaggered || Data.NewValue>0.f)return;
     bStaggered=true;
+    if(DefenseComponent)DefenseComponent->ResetDefense();
     AbilitySystem->CancelAllAbilities();
     ActionComponent->ForceReset();
     AbilitySystem->AddLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName(TEXT("State.Combat.Staggered"))));
@@ -133,6 +149,7 @@ void AMythCombatCharacter::HandleDeath()
     bDead=true;
     AbilitySystem->CancelAllAbilities();
     ActionComponent->ForceReset();
+    if(DefenseComponent)DefenseComponent->ResetDefense();
     GetWorldTimerManager().ClearTimer(StaggerTimer);
     if(bStaggered)EndStagger();
     GetCharacterMovement()->DisableMovement();
@@ -143,6 +160,7 @@ void AMythCombatCharacter::ReviveAt(const FTransform& Where)
 {
     AbilitySystem->CancelAllAbilities();ActionComponent->ForceReset();
     bDead=false;
+    if(DefenseComponent)DefenseComponent->ResetDefense();
     SetActorTransform(Where,false,nullptr,ETeleportType::TeleportPhysics);
     AbilitySystem->RemoveLooseGameplayTag(FGameplayTag::RequestGameplayTag(FName(TEXT("State.Character.Dead"))));
     AbilitySystem->SetNumericAttributeBase(UMythAttributeSet::GetHealthAttribute(),GetMaxHealth());

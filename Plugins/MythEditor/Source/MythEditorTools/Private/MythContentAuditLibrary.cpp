@@ -9,6 +9,8 @@
 #include "MythItemDefinition.h"
 #include "MythDialogueDefinition.h"
 #include "MythSkillTreeDefinition.h"
+#include "MythNarrativeCommandDefinition.h"
+#include "MythAICombatProfile.h"
 #include "MythPersistentWorldComponent.h"
 
 namespace
@@ -75,7 +77,9 @@ int32 UMythContentAuditLibrary::AuditAllGameAssets(TArray<FString>& OutIssues)
             ClassName == UMythItemCatalog::StaticClass()->GetFName() ||
             ClassName == UMythQuestDefinition::StaticClass()->GetFName() ||
             ClassName == UMythSkillTreeDefinition::StaticClass()->GetFName() ||
-            ClassName == UMythDialogueDefinition::StaticClass()->GetFName();
+            ClassName == UMythDialogueDefinition::StaticClass()->GetFName() ||
+            ClassName == UMythNarrativeCommandDefinition::StaticClass()->GetFName() ||
+            ClassName == UMythAICombatProfile::StaticClass()->GetFName();
         if (!bRelevant) continue;
         UObject* Asset = AssetData.GetAsset();
         if (!Asset) { OutIssues.Add(AssetData.AssetName.ToString() + TEXT(": could not load")); continue; }
@@ -92,6 +96,22 @@ int32 UMythContentAuditLibrary::AuditAllGameAssets(TArray<FString>& OutIssues)
             if (!Tree->ValidateTree(Message)) Issue(OutIssues, Tree, Message);
         }
         if (auto* Dialogue = Cast<UMythDialogueDefinition>(Asset)) CheckDialogue(Dialogue, OutIssues);
+        if (auto* Sequence = Cast<UMythNarrativeCommandDefinition>(Asset))
+        {
+            FString Message;
+            if (!Sequence->Validate(Message)) Issue(OutIssues, Sequence, Message);
+        }
+        if (auto* Profile = Cast<UMythAICombatProfile>(Asset))
+        {
+            TSet<FName> SeenAttackIds;
+            for(const FMythAIAttackOption& Attack:Profile->Attacks)
+            {
+                if(Attack.AttackId.IsNone() || SeenAttackIds.Contains(Attack.AttackId) ||
+                   Attack.MinDistance>Attack.MaxDistance || Attack.Weight<=0.f || Attack.Cooldown<0.f)
+                    Issue(OutIssues, Profile, TEXT("Invalid or duplicate AI attack option"));
+                SeenAttackIds.Add(Attack.AttackId);
+            }
+        }
     }
     for (const FString& Problem : OutIssues)
         UE_LOG(LogTemp, Error, TEXT("MythARPG content audit: %s"), *Problem);

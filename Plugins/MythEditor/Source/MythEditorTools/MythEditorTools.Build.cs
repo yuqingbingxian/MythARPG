@@ -5,7 +5,7 @@ public class MythEditorTools : ModuleRules
     {
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicDependencyModuleNames.AddRange(new string[] {
-            "Core", "CoreUObject", "Engine", "MythFoundationRuntime", "MythSystemsRuntime" });
+            "Core", "CoreUObject", "Engine", "MythFoundationRuntime", "MythSystemsRuntime", "MythGameplayRuntime" });
         PrivateDependencyModuleNames.AddRange(new string[] {
             "AssetRegistry", "UnrealEd" });
     }

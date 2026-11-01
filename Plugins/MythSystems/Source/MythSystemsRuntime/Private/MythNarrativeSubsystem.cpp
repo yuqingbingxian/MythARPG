@@ -2,6 +2,8 @@
 #include "MythDialogueDefinition.h"
 #include "MythSaveSubsystem.h"
 #include "MythEventSubsystem.h"
+#include "MythNarrativeCommandSubsystem.h"
+#include "MythNarrativeCommandDefinition.h"
 #include "Engine/GameInstance.h"
 FName UMythNarrativeSubsystem::CurrentDialogueId()const
 {return ActiveDialogue?ActiveDialogue->DialogueId:NAME_None;}
@@ -26,13 +28,22 @@ bool UMythNarrativeSubsystem::Choose(int32 Index)
 {
     if(!CanChoose(Index))return false;
     const FMythDialogueChoice Choice=ActiveDialogue->FindNode(ActiveNodeId)->Choices[Index];
-    if(!Choice.SetWorldFlag.IsNone())
+    UMythSaveSubsystem* Save=GetGameInstance()->GetSubsystem<UMythSaveSubsystem>();
+    UMythNarrativeCommandSubsystem* Commands=GetGameInstance()->GetSubsystem<UMythNarrativeCommandSubsystem>();
+    const UMythNarrativeCommandDefinition* Sequence=nullptr;
+    if(!Choice.ActionSequence.IsNull())
     {
-        UMythSaveSubsystem* Save=GetGameInstance()->GetSubsystem<UMythSaveSubsystem>();
+        Sequence=Choice.ActionSequence.LoadSynchronous();
+        if(!Sequence || !Commands || !Save)return false;
+    }
+    if(Sequence || !Choice.SetWorldFlag.IsNone())
+    {
         if(!Save)return false;
-        FMythCampaignSnapshot S=Save->GetSnapshot();
-        S.WorldValues.Add(Choice.SetWorldFlag,1);
-        if(!Save->SetSnapshot(S))return false;
+        FMythCampaignSnapshot Candidate=Save->GetSnapshot();
+        if(Sequence && !Commands->ApplyToSnapshot(Sequence,Candidate))return false;
+        if(!Choice.SetWorldFlag.IsNone())Candidate.WorldValues.Add(Choice.SetWorldFlag,1);
+        if(!Save->SetSnapshot(Candidate))return false;
+        if(Sequence)Commands->PublishEvents(Sequence);
     }
     if(Choice.NextNodeId.IsNone())
     {

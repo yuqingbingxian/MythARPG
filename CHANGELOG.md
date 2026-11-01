@@ -23,3 +23,12 @@
 ## v0.2 - Combat action prototype
 
 - Data-driven combo graph, stamina/poise, weapon trace, lock-on, debug fallback.
+
+## v0.5 - Shared gameplay systems (source only)
+
+- Added directional guard/parry/guard-break component and player input hooks.
+- Added sight-based AI targeting and a data-driven weighted attack policy.
+- Added conditional quest stage branches and receipt-based narrative actions.
+- Added UI layer router, HUD observer, settings profile subsystem.
+- Extended data audits and added three automation test sources.
+- No chapter-specific content or compiled binaries. Integration remains unverified.
