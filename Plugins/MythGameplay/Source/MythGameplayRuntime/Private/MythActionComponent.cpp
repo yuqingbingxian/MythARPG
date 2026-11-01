@@ -135,14 +135,21 @@ bool UMythActionComponent::StartNode(const FMythComboNode& Node)
     CurrentNode=Node;
     AMythCombatCharacter* Owner=Cast<AMythCombatCharacter>(GetOwner());
     UAnimInstance* Anim=Owner && Owner->GetMesh() ? Owner->GetMesh()->GetAnimInstance() : nullptr;
-    if (Anim && ActiveMontage) Anim->Montage_Stop(.08f,ActiveMontage);
+    UAnimMontage* PreviousMontage=ActiveMontage;
+    ActiveMontage=nullptr;
+    if (Anim && PreviousMontage) Anim->Montage_Stop(.08f,PreviousMontage);
     ActiveMontage=nullptr;
     bool bPlayed=false;
     if (Anim && Node.Montage)
     {
         bPlayed=Anim->Montage_Play(Node.Montage)>0.f;
         if (bPlayed && !Node.MontageSection.IsNone()) Anim->Montage_JumpToSection(Node.MontageSection,Node.Montage);
-        if (bPlayed) ActiveMontage=Node.Montage;
+        if (bPlayed)
+        {
+            ActiveMontage=Node.Montage;
+            FOnMontageEnded End;End.BindUObject(this,&UMythActionComponent::OnActionMontageEnded);
+            Anim->Montage_SetEndDelegate(End,Node.Montage);
+        }
     }
     if (!GetWorld()) return false;
     FTimerManager& Timer=GetWorld()->GetTimerManager();
@@ -206,9 +213,10 @@ void UMythActionComponent::AbortAttack(UMythMeleeAbility* Ability)
 {
     if (State!=EMythActionState::Attacking || AttackAbility.Get()!=Ability) return;
     ClearActionTimers();CloseHitWindow();
+    UAnimMontage* MontageToStop=ActiveMontage;ActiveMontage=nullptr;
     if (AMythCombatCharacter* Owner=Cast<AMythCombatCharacter>(GetOwner()))
         if (UAnimInstance* Anim=Owner->GetMesh() ? Owner->GetMesh()->GetAnimInstance():nullptr)
-            if (ActiveMontage) Anim->Montage_Stop(.1f,ActiveMontage);
+            if (MontageToStop) Anim->Montage_Stop(.1f,MontageToStop);
     ActiveMontage=nullptr;
     bBuffered=false;bComboWindow=false;bDodgeCancelWindow=false;
     CurrentNode=FMythComboNode();
@@ -234,6 +242,11 @@ bool UMythActionComponent::BeginDodge(UMythDodgeAbility* Ability)
     UAnimInstance* Anim=Owner && Owner->GetMesh() ? Owner->GetMesh()->GetAnimInstance():nullptr;
     const bool bPlayed=Anim && DodgeMontage && Anim->Montage_Play(DodgeMontage)>0.f;
     ActiveMontage=bPlayed ? DodgeMontage : nullptr;
+    if(bPlayed)
+    {
+        FOnMontageEnded End;End.BindUObject(this,&UMythActionComponent::OnActionMontageEnded);
+        Anim->Montage_SetEndDelegate(End,DodgeMontage);
+    }
     if (!(bDodgeUseAnimationNotifies && bPlayed))
     {
         Timer.SetTimer(IFrameOpenTimer,this,&UMythActionComponent::OpenDodgeIFrames,FMath::Max(.001f,DodgeIFrameOpen),false);
@@ -266,9 +279,10 @@ void UMythActionComponent::AbortDodge(UMythDodgeAbility* Ability)
 {
     if (State!=EMythActionState::Dodging || DodgeAbility.Get()!=Ability) return;
     ClearDodgeTimers();CloseDodgeIFrames();
+    UAnimMontage* MontageToStop=ActiveMontage;ActiveMontage=nullptr;
     if (AMythCombatCharacter* Owner=Cast<AMythCombatCharacter>(GetOwner()))
         if (UAnimInstance* Anim=Owner->GetMesh() ? Owner->GetMesh()->GetAnimInstance():nullptr)
-            if (ActiveMontage) Anim->Montage_Stop(.1f,ActiveMontage);
+            if (MontageToStop) Anim->Montage_Stop(.1f,MontageToStop);
     ActiveMontage=nullptr;
     DodgeAbility.Reset();State=EMythActionState::Idle;
     SetStateTag(TEXT("State.Movement.Dodging"),false);
@@ -284,4 +298,28 @@ void UMythActionComponent::ForceReset()
     CurrentNode=FMythComboNode();State=EMythActionState::Idle;
     if(Previous==EMythActionState::Attacking)SetStateTag(TEXT("State.Combat.Attacking"),false);
     if(Previous==EMythActionState::Dodging)SetStateTag(TEXT("State.Movement.Dodging"),false);
+}
+
+void UMythActionComponent::OnActionMontageEnded(UAnimMontage* Montage,bool bInterrupted)
+{
+    if(!Montage || Montage!=ActiveMontage)return; // Ignore an old combo section finishing late.
+    ActiveMontage=nullptr;
+    if(State==EMythActionState::Attacking)
+    {
+        if(bInterrupted)
+        {
+            if(UMythMeleeAbility* Ability=AttackAbility.Get())Ability->CancelFromAction();
+            else ForceReset();
+        }
+        else EndAttackNaturally();
+    }
+    else if(State==EMythActionState::Dodging)
+    {
+        if(bInterrupted)
+        {
+            if(UMythDodgeAbility* Ability=DodgeAbility.Get())Ability->CancelFromAction();
+            else ForceReset();
+        }
+        else EndDodgeNaturally();
+    }
 }

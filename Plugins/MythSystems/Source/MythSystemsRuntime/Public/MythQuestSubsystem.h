@@ -18,7 +18,7 @@ public:
     UPROPERTY(BlueprintAssignable) FMythQuestTransition OnQuestCompleted;
     UFUNCTION(BlueprintCallable) void RegisterCatalog(UMythQuestCatalog* Catalog);
     UFUNCTION(BlueprintCallable) bool StartQuest(FName QuestId);
-    UFUNCTION(BlueprintCallable) bool ReportGameplayEvent(FName EventName,FName TargetId,int32 Amount=1);
+    UFUNCTION(BlueprintCallable) bool ReportGameplayEvent(FName EventName,FName TargetId,int32 Amount=1,FName StableReceiptId=NAME_None);
     UFUNCTION(BlueprintPure) FName GetCurrentStage(FName QuestId) const;
 private:
     UPROPERTY(Transient) TObjectPtr<UMythQuestCatalog> QuestCatalog;

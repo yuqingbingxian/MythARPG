@@ -21,3 +21,5 @@ jobs:
         run: python Scripts/verify_runtime_v08.py
       - name: Detect duplicated C++ methods and player input bindings
         run: python Scripts/verify_cpp_duplicates_v09.py
+      - name: Validate v1.0 feature source contracts
+        run: python Scripts/verify_foundation_v10.py

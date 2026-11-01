@@ -32,6 +32,12 @@ void UMythSaveSubsystem::MigrateLoadedSave()
         CurrentSave->SchemaVersion = 2;
         bDirty = true;
     }
+    if (CurrentSave->SchemaVersion==2)
+    {
+        // Newly added fields have safe reflected defaults on legacy saves.
+        CurrentSave->SchemaVersion=3;
+        bDirty=true;
+    }
 }
 
 bool UMythSaveSubsystem::ReloadFromDisk()
@@ -49,7 +55,7 @@ bool UMythSaveSubsystem::ReloadFromDisk()
     else
         Candidate = Cast<UMythSaveGame>(UGameplayStatics::LoadGameFromMemory(Read.Bytes));
     if (!Candidate) return false;
-    if (Candidate->SchemaVersion > 2)
+    if (Candidate->SchemaVersion > 3)
     {
         UE_LOG(LogTemp, Error, TEXT("MythARPG: unsupported future save version %d"), Candidate->SchemaVersion);
         return false;
@@ -58,6 +64,21 @@ bool UMythSaveSubsystem::ReloadFromDisk()
     bDirty = false;
     MutationRevision = 0;
     MigrateLoadedSave();
+    if (CurrentSave->Campaign.TravelRecovery.bPending)
+    {
+        // Crash between persisting destination and PostLoadMap: return to last durable checkpoint.
+        FMythCampaignSnapshot& Data=CurrentSave->Campaign;
+        const FMythTravelRecovery Recovery=Data.TravelRecovery;
+        Data.ChapterId=Recovery.PreviousChapterId;
+        Data.CheckpointId=Recovery.PreviousCheckpointId;
+        Data.PlayerTransform=Recovery.PreviousPlayerTransform;
+        Data.PlayerHealth=Recovery.PreviousHealth;
+        Data.bHasPlayerState=Recovery.bPreviousPlayerState;
+        Data.TravelRecovery=FMythTravelRecovery();
+        bDirty=true;
+        UE_LOG(LogTemp,Warning,TEXT("MythARPG recovered interrupted chapter travel."));
+    }
+    if (!ValidateSnapshot(CurrentSave->Campaign))return false;
     if (Read.Status == EMythSaveReadStatus::RecoveredOlderGeneration)
         UE_LOG(LogTemp, Warning, TEXT("MythARPG recovered a previous valid save generation."));
     // Legacy slots migrate into new generation files at next safe save boundary.
@@ -77,7 +98,8 @@ bool UMythSaveSubsystem::ValidateSnapshot(const FMythCampaignSnapshot& S)
         !FMath::IsFinite(S.PlayerHealth) || S.PlayerHealth < 0.f || S.PlayerTransform.ContainsNaN()) return false;
     // Defend against malformed snapshots before the value reaches a persistent slot.
     if (S.Inventory.Num() > 20000 || S.Quests.Num() > 5000 || S.Wallet.Num() > 500 ||
-        S.WorldValues.Num() > 100000 || S.AppliedTransactionIds.Num() > 100000) return false;
+        S.WorldValues.Num() > 100000 || S.AppliedTransactionIds.Num() > 100000 ||
+        S.PendingSignals.Num()>10000) return false;
     if (S.ChapterId.IsNone() && !S.CheckpointId.IsNone()) return false;
     for (const FName Skill : S.UnlockedSkills) if (Skill.IsNone()) return false;
     for (const FName Chapter : S.UnlockedChapterIds) if (Chapter.IsNone()) return false;
@@ -108,17 +130,34 @@ bool UMythSaveSubsystem::ValidateSnapshot(const FMythCampaignSnapshot& S)
         for (const FName Receipt : Quest.RewardReceiptIds) if (Receipt.IsNone()) return false;
         QuestIds.Add(Quest.QuestId);
     }
+    TSet<FName> PendingReceipts;
+    for(const FMythQueuedSignal& Signal:S.PendingSignals)
+    {
+        if(Signal.ReceiptId.IsNone() || Signal.EventName.IsNone() || Signal.Count<=0 ||
+           PendingReceipts.Contains(Signal.ReceiptId))return false;
+        PendingReceipts.Add(Signal.ReceiptId);
+    }
+    if(S.TravelRecovery.bPending && (S.TravelRecovery.PreviousChapterId.IsNone() ||
+        !FMath::IsFinite(S.TravelRecovery.PreviousHealth) ||
+        S.TravelRecovery.PreviousPlayerTransform.ContainsNaN()))return false;
     return true;
 }
 
 bool UMythSaveSubsystem::SetSnapshot(const FMythCampaignSnapshot& NewSnapshot,bool bFlushNow)
 {
     if (!CurrentSave || (bFlushNow && bSaving) || !ValidateSnapshot(NewSnapshot)) return false;
+    const FMythCampaignSnapshot Previous=CurrentSave->Campaign;
     CurrentSave->Campaign = NewSnapshot;
     ++MutationRevision;
     bDirty = true;
     if (bSaving) bQueuedSave = true;
-    return !bFlushNow || FlushToDisk();
+    if(!bFlushNow)return true;
+    if(FlushToDisk())return true;
+    // The failed persisted transaction must not remain visible to the running game.
+    CurrentSave->Campaign=Previous;
+    ++MutationRevision;
+    bDirty=true;
+    return false;
 }
 
 bool UMythSaveSubsystem::SerializeSnapshot(TArray<uint8>& OutBytes) const

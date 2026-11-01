@@ -26,6 +26,32 @@ struct MYTHFOUNDATIONRUNTIME_API FMythQuestRecord
     UPROPERTY(EditAnywhere, BlueprintReadWrite) TSet<FName> RewardReceiptIds;
 };
 
+
+/** Persisted outbox: at-least-once events, delivered after the state commit. */
+USTRUCT(BlueprintType)
+struct MYTHFOUNDATIONRUNTIME_API FMythQueuedSignal
+{
+    GENERATED_BODY()
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) FName ReceiptId=NAME_None;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) FName EventName=NAME_None;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) FName TargetId=NAME_None;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) FName ChapterId=NAME_None;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) int32 Count=1;
+};
+
+/** Crash-recovery breadcrumb while OpenLevel is in progress. */
+USTRUCT(BlueprintType)
+struct MYTHFOUNDATIONRUNTIME_API FMythTravelRecovery
+{
+    GENERATED_BODY()
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) bool bPending=false;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) FName PreviousChapterId=NAME_None;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) FName PreviousCheckpointId=NAME_None;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) FTransform PreviousPlayerTransform=FTransform::Identity;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) float PreviousHealth=100.f;
+    UPROPERTY(EditAnywhere,BlueprintReadWrite) bool bPreviousPlayerState=false;
+};
+
 USTRUCT(BlueprintType)
 struct MYTHFOUNDATIONRUNTIME_API FMythCampaignSnapshot
 {
@@ -48,4 +74,6 @@ struct MYTHFOUNDATIONRUNTIME_API FMythCampaignSnapshot
     UPROPERTY(EditAnywhere, BlueprintReadWrite) TSet<FName> UnlockedChapterIds;
     // These record one-time application of quest rewards, pickups, and narrative actions.
     UPROPERTY(EditAnywhere, BlueprintReadWrite) TSet<FName> AppliedTransactionIds;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) TArray<FMythQueuedSignal> PendingSignals;
+    UPROPERTY(EditAnywhere, BlueprintReadWrite) FMythTravelRecovery TravelRecovery;
 };

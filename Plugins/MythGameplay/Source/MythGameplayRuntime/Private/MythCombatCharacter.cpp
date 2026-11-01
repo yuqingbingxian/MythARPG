@@ -8,6 +8,8 @@
 #include "MythActionComponent.h"
 #include "MythWeaponTraceComponent.h"
 #include "MythDefenseComponent.h"
+#include "MythExecutionComponent.h"
+#include "MotionWarpingComponent.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
@@ -26,6 +28,8 @@ AMythCombatCharacter::AMythCombatCharacter()
     ActionComponent=CreateDefaultSubobject<UMythActionComponent>(TEXT("ActionComponent"));
     WeaponTrace=CreateDefaultSubobject<UMythWeaponTraceComponent>(TEXT("WeaponTrace"));
     DefenseComponent=CreateDefaultSubobject<UMythDefenseComponent>(TEXT("Defense"));
+    ExecutionComponent=CreateDefaultSubobject<UMythExecutionComponent>(TEXT("Execution"));
+    MotionWarpingComponent=CreateDefaultSubobject<UMotionWarpingComponent>(TEXT("MotionWarping"));
     DebugMesh=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DebugVisual"));
     DebugMesh->SetupAttachment(GetRootComponent());
     DebugMesh->SetCollisionEnabled(ECollisionEnabled::NoCollision);
@@ -127,6 +131,7 @@ void AMythCombatCharacter::OnPoiseAttributeChanged(const FOnAttributeChangeData&
 {
     if(bDead || bStaggered || Data.NewValue>0.f)return;
     bStaggered=true;
+    if(ExecutionComponent)ExecutionComponent->CancelExecution();
     if(DefenseComponent)DefenseComponent->ResetDefense();
     AbilitySystem->CancelAllAbilities();
     ActionComponent->ForceReset();
@@ -147,6 +152,7 @@ void AMythCombatCharacter::HandleDeath()
     bDead=true;
     AbilitySystem->CancelAllAbilities();
     ActionComponent->ForceReset();
+    if(ExecutionComponent)ExecutionComponent->CancelExecution();
     if(DefenseComponent)DefenseComponent->ResetDefense();
     GetWorldTimerManager().ClearTimer(StaggerTimer);
     if(bStaggered)EndStagger();

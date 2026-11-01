@@ -9,7 +9,7 @@ public class MythGameplayRuntime : ModuleRules
             "GameplayAbilities", "GameplayTags", "GameplayTasks", "EnhancedInput", "AIModule", "GameplayStateTreeModule", "StateTreeModule"
         });
         PrivateDependencyModuleNames.AddRange(new string[] {
-            "NavigationSystem"
+            "NavigationSystem", "MotionWarping"
         });
     }
 }

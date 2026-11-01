@@ -16,6 +16,9 @@ bool UMythSettingsSubsystem::GetInvertCameraY()const{return Preferences?Preferen
 bool UMythSettingsSubsystem::GetReducedCameraShake()const{return Preferences?Preferences->bReducedCameraShake:false;}
 float UMythSettingsSubsystem::GetCameraSensitivity()const{return Preferences?Preferences->CameraSensitivity:1.f;}
 float UMythSettingsSubsystem::GetMasterVolume()const{return Preferences?Preferences->MasterVolume:1.f;}
+float UMythSettingsSubsystem::GetMusicVolume()const{return Preferences?Preferences->MusicVolume:.8f;}
+float UMythSettingsSubsystem::GetSFXVolume()const{return Preferences?Preferences->SfxVolume:1.f;}
+float UMythSettingsSubsystem::GetDialogueVolume()const{return Preferences?Preferences->DialogueVolume:1.f;}
 bool UMythSettingsSubsystem::SavePreferences()
 {return Preferences && UGameplayStatics::SaveGameToSlot(Preferences,Slot,0);}
 bool UMythSettingsSubsystem::SetAccessibility(bool Subtitles,bool InvertY,bool ReduceShake,float Sensitivity)

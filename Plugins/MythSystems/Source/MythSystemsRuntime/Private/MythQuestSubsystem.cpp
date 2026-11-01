@@ -21,7 +21,7 @@ void UMythQuestSubsystem::Deinitialize()
 }
 void UMythQuestSubsystem::HandleSignal(const FMythGameplaySignal& Signal)
 {
-    ReportGameplayEvent(Signal.EventName,Signal.TargetId,Signal.Count);
+    ReportGameplayEvent(Signal.EventName,Signal.TargetId,Signal.Count,Signal.StableReceiptId);
 }
 void UMythQuestSubsystem::RegisterCatalog(UMythQuestCatalog* Catalog){QuestCatalog=Catalog;}
 FName UMythQuestSubsystem::GetCurrentStage(FName QuestId) const
@@ -49,12 +49,13 @@ bool UMythQuestSubsystem::StartQuest(FName Id)
     OnQuestAdvanced.Broadcast(Id,Record.StageId);
     return true;
 }
-bool UMythQuestSubsystem::ReportGameplayEvent(FName EventName,FName TargetId,int32 Amount)
+bool UMythQuestSubsystem::ReportGameplayEvent(FName EventName,FName TargetId,int32 Amount,FName StableReceiptId)
 {
     if(!QuestCatalog || EventName.IsNone() || Amount<=0)return false;
     UMythSaveSubsystem* Save=GetGameInstance()->GetSubsystem<UMythSaveSubsystem>();
     if(!Save)return false;
     FMythCampaignSnapshot S=Save->GetSnapshot();
+    if(!StableReceiptId.IsNone() && S.AppliedTransactionIds.Contains(StableReceiptId))return false;
     TArray<TPair<FName,FName>> Advances;
     TArray<TPair<FName,FName>> Completions;
     TArray<const UMythRewardDefinition*> PendingRewards;
@@ -98,7 +99,12 @@ bool UMythQuestSubsystem::ReportGameplayEvent(FName EventName,FName TargetId,int
             Advances.Add(TPair<FName,FName>(R.QuestId,R.StageId));
         }
     }
-    if(!bModified)return false;
+    if(!bModified)
+    {
+        if(!StableReceiptId.IsNone())
+        {S.AppliedTransactionIds.Add(StableReceiptId);Save->SetSnapshot(S);}
+        return false;
+    }
     if(!PendingRewards.IsEmpty())
     {
         UMythRewardSubsystem* RewardSystem=GetGameInstance()->GetSubsystem<UMythRewardSubsystem>();
@@ -106,6 +112,7 @@ bool UMythQuestSubsystem::ReportGameplayEvent(FName EventName,FName TargetId,int
         for(const UMythRewardDefinition* Reward:PendingRewards)
             if(!RewardSystem->TryGrantToSnapshot(S,Reward))return false;
     }
+    if(!StableReceiptId.IsNone())S.AppliedTransactionIds.Add(StableReceiptId);
     if(!Save->SetSnapshot(S))return false;
     if(!PendingRewards.IsEmpty())
         if(UMythInventorySubsystem* Inv=GetGameInstance()->GetSubsystem<UMythInventorySubsystem>())Inv->NotifyInventoryChanged();

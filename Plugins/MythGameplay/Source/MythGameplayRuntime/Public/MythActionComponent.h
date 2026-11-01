@@ -78,4 +78,5 @@ private:
     void ClearActionTimers();
     void ClearDodgeTimers();
     void SetStateTag(FName Tag,bool bEnable);
+    void OnActionMontageEnded(UAnimMontage* Montage,bool bInterrupted);
 };

@@ -12,6 +12,8 @@ class UStaticMeshComponent;
 class UMythWeaponTraceComponent;
 class UMythActionComponent;
 class UMythDefenseComponent;
+class UMythExecutionComponent;
+class UMotionWarpingComponent;
 struct FOnAttributeChangeData;
 UENUM(BlueprintType)
 enum class EMythFaction : uint8 {Player,Enemy,Neutral};
@@ -36,6 +38,8 @@ public:
     UFUNCTION(BlueprintPure,Category="Combat") UMythActionComponent* GetActionComponent() const{return ActionComponent;}
     UFUNCTION(BlueprintPure,Category="Combat") UMythDefenseComponent* GetDefenseComponent() const{return DefenseComponent;}
     UFUNCTION(BlueprintPure,Category="Combat") UMythWeaponTraceComponent* GetWeaponTraceComponent() const{return WeaponTrace;}
+    UFUNCTION(BlueprintPure,Category="Combat") UMythExecutionComponent* GetExecutionComponent() const{return ExecutionComponent;}
+    UFUNCTION(BlueprintPure,Category="Combat") UMotionWarpingComponent* GetMotionWarpingComponent() const{return MotionWarpingComponent;}
     UFUNCTION(BlueprintCallable,Category="Combat") bool RequestMeleeAbility();
     UFUNCTION(BlueprintCallable,Category="Combat") bool RequestHeavyAbility();
     UFUNCTION(BlueprintCallable,Category="Combat") bool RequestDodgeAbility();
@@ -45,6 +49,8 @@ public:
 protected:
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UAbilitySystemComponent> AbilitySystem;
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UMythAttributeSet> AttributeSet;
+    UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UMythExecutionComponent> ExecutionComponent;
+    UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UMotionWarpingComponent> MotionWarpingComponent;
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UMythActionComponent> ActionComponent;
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UMythWeaponTraceComponent> WeaponTrace;
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UMythDefenseComponent> DefenseComponent;

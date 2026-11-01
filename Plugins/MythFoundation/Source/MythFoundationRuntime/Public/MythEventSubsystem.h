@@ -24,9 +24,13 @@ class MYTHFOUNDATIONRUNTIME_API UMythEventSubsystem : public UGameInstanceSubsys
 {
     GENERATED_BODY()
 public:
+    virtual void Initialize(FSubsystemCollectionBase& Collection) override;
     FOnMythBossDefeated OnBossDefeated;
     FOnMythGameplaySignal OnSignal;
     UPROPERTY(BlueprintAssignable) FMythGameplaySignalBP OnSignalBP;
     UFUNCTION(BlueprintCallable,Category="Events") bool PublishSignal(const FMythGameplaySignal& Signal);
     void PublishBossDefeated(FName BossId,FName ChapterId);
+    UFUNCTION(BlueprintCallable,Category="Events") void DeliverPending();
+private:
+    bool bDispatching=false;
 };

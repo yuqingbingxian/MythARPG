@@ -15,6 +15,10 @@ void UMythDodgeAbility::CompleteFromAction()
 {
     EndAbility(CurrentSpecHandle,CurrentActorInfo,CurrentActivationInfo,false,false);
 }
+void UMythDodgeAbility::CancelFromAction()
+{
+    EndAbility(CurrentSpecHandle,CurrentActorInfo,CurrentActivationInfo,false,true);
+}
 void UMythDodgeAbility::EndAbility(const FGameplayAbilitySpecHandle Handle,const FGameplayAbilityActorInfo* Info,
     const FGameplayAbilityActivationInfo ActivationInfo,bool bReplicate,bool bCancelled)
 {

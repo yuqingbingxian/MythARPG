@@ -18,6 +18,9 @@ public:
     UFUNCTION(BlueprintPure) bool GetReducedCameraShake()const;
     UFUNCTION(BlueprintPure) float GetCameraSensitivity()const;
     UFUNCTION(BlueprintPure) float GetMasterVolume()const;
+    UFUNCTION(BlueprintPure) float GetMusicVolume()const;
+    UFUNCTION(BlueprintPure) float GetSFXVolume()const;
+    UFUNCTION(BlueprintPure) float GetDialogueVolume()const;
     UFUNCTION(BlueprintCallable) bool SetAccessibility(bool bSubtitles,bool bInvertY,bool bReduceShake,float Sensitivity);
     UFUNCTION(BlueprintCallable) bool SetAudioLevels(float Master,float Music,float Sfx,float Dialogue);
     UFUNCTION(BlueprintCallable) bool SavePreferences();

@@ -9,7 +9,7 @@ class MYTHFOUNDATIONRUNTIME_API UMythSaveGame : public USaveGame
 {
     GENERATED_BODY()
 public:
-    UPROPERTY(SaveGame, VisibleAnywhere, BlueprintReadOnly) int32 SchemaVersion = 2;
+    UPROPERTY(SaveGame, VisibleAnywhere, BlueprintReadOnly) int32 SchemaVersion = 3;
     UPROPERTY(SaveGame, VisibleAnywhere, BlueprintReadOnly) FMythCampaignSnapshot Campaign;
 
     // V1 compatibility fields: do not remove until migration tests cover production saves.

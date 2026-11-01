@@ -12,8 +12,9 @@ bool UMythNarrativeCommandSubsystem::ApplyToSnapshot(const UMythNarrativeCommand
     FString Error;
     if(!Def || !Def->Validate(Error) || S.AppliedTransactionIds.Contains(Def->ReceiptId))return false;
     if(!Def->RequiredWorldFlag.IsNone() && S.WorldValues.FindRef(Def->RequiredWorldFlag)==0)return false;
-    for(const FMythNarrativeCommand& C:Def->Commands)
+    for(int32 CommandIndex=0;CommandIndex<Def->Commands.Num();++CommandIndex)
     {
+        const FMythNarrativeCommand& C=Def->Commands[CommandIndex];
         switch(C.Opcode)
         {
         case EMythNarrativeOpcode::SetWorldValue:
@@ -40,7 +41,14 @@ bool UMythNarrativeCommandSubsystem::ApplyToSnapshot(const UMythNarrativeCommand
             if(!Rewards || !Reward || !Rewards->TryGrantToSnapshot(S,Reward))return false;
             break;
         }
-        case EMythNarrativeOpcode::EmitGameplaySignal:break; // Publish only after successful commit.
+        case EMythNarrativeOpcode::EmitGameplaySignal:
+        {
+            FMythQueuedSignal Pending;
+            Pending.ReceiptId=FName(*FString::Printf(TEXT("Narrative.%s.%d"),*Def->ReceiptId.ToString(),CommandIndex));
+            Pending.EventName=C.TargetId;Pending.Count=FMath::Max(1,C.IntValue);
+            S.PendingSignals.Add(Pending);
+            break;
+        }
         default:return false;
         }
     }
@@ -49,15 +57,9 @@ bool UMythNarrativeCommandSubsystem::ApplyToSnapshot(const UMythNarrativeCommand
 }
 void UMythNarrativeCommandSubsystem::PublishEvents(const UMythNarrativeCommandDefinition* Def)const
 {
-    UGameInstance* GI=GetGameInstance();
-    UMythEventSubsystem* Bus=GI?GI->GetSubsystem<UMythEventSubsystem>():nullptr;
-    if(!Bus || !Def)return;
-    for(const FMythNarrativeCommand& C:Def->Commands)
-        if(C.Opcode==EMythNarrativeOpcode::EmitGameplaySignal)
-        {
-            FMythGameplaySignal Signal;Signal.EventName=C.TargetId;Signal.Count=FMath::Max(1,C.IntValue);
-            Bus->PublishSignal(Signal);
-        }
+    // Compatibility wrapper. The outbox was already committed by RunSequence.
+    if(UGameInstance* GI=GetGameInstance())
+        if(UMythEventSubsystem* Bus=GI->GetSubsystem<UMythEventSubsystem>())Bus->DeliverPending();
 }
 bool UMythNarrativeCommandSubsystem::RunSequence(UMythNarrativeCommandDefinition* Def)
 {
@@ -65,7 +67,7 @@ bool UMythNarrativeCommandSubsystem::RunSequence(UMythNarrativeCommandDefinition
     UMythSaveSubsystem* Save=GI?GI->GetSubsystem<UMythSaveSubsystem>():nullptr;
     if(!Def || !Save)return false;
     FMythCampaignSnapshot Candidate=Save->GetSnapshot();
-    if(!ApplyToSnapshot(Def,Candidate) || !Save->SetSnapshot(Candidate))return false;
+    if(!ApplyToSnapshot(Def,Candidate) || !Save->SetSnapshot(Candidate,true))return false;
     PublishEvents(Def);
     return true;
 }

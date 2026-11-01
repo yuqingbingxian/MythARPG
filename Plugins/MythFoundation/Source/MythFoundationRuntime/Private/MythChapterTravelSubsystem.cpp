@@ -76,12 +76,20 @@ void UMythChapterTravelSubsystem::OnMapReady()
     SetPhase(EMythTravelPhase::Saving, FText::FromString(TEXT("Committing chapter transition")));
     // SelectChapter flushes the checkpoint and clears the previous level's transform.
     // Transition is committed BEFORE OpenLevel so BeginPlay sees the right chapter.
-    if (!Chapter->SelectChapter(PendingChapterId, PendingCheckpointId))
+    FMythCampaignSnapshot TravelSnapshot=Save->GetSnapshot();
+    TravelSnapshot.TravelRecovery.bPending=true;
+    TravelSnapshot.TravelRecovery.PreviousChapterId=BeforeTravel.ChapterId;
+    TravelSnapshot.TravelRecovery.PreviousCheckpointId=BeforeTravel.CheckpointId;
+    TravelSnapshot.TravelRecovery.PreviousPlayerTransform=BeforeTravel.PlayerTransform;
+    TravelSnapshot.TravelRecovery.PreviousHealth=BeforeTravel.PlayerHealth;
+    TravelSnapshot.TravelRecovery.bPreviousPlayerState=BeforeTravel.bHasPlayerState;
+    const bool bPrepared=Save->SetSnapshot(TravelSnapshot,true);
+    if(bPrepared)bCommittedBeforeTravel=true;
+    if (!bPrepared || !Chapter->SelectChapter(PendingChapterId, PendingCheckpointId))
     {
         FailAndRollback(FText::FromString(TEXT("Unable to persist chapter transition")));
         return;
     }
-    bCommittedBeforeTravel = true;
     SetPhase(EMythTravelPhase::OpeningMap, FText::FromString(TEXT("Opening chapter map")));
     UGameplayStatics::OpenLevel(GI->GetWorld(), FName(*PendingMapPackage), true);
 }
@@ -94,6 +102,16 @@ void UMythChapterTravelSubsystem::OnMapLoaded(UWorld* LoadedWorld)
     const FString Expected = FPackageName::GetShortName(PendingMapPackage);
     if (Actual == Expected || Actual.EndsWith(TEXT("_") + Expected))
     {
+        if(UGameInstance* GI=GetGameInstance())
+        {
+            if(UMythSaveSubsystem* Save=GI->GetSubsystem<UMythSaveSubsystem>())
+            {
+                FMythCampaignSnapshot NewSnapshot=Save->GetSnapshot();
+                NewSnapshot.TravelRecovery=FMythTravelRecovery();
+                if(!Save->SetSnapshot(NewSnapshot,true))
+                {FailAndRollback(FText::FromString(TEXT("Unable to confirm destination checkpoint")));return;}
+            }
+        }
         SetPhase(EMythTravelPhase::Arrived, FText::FromString(TEXT("Chapter map ready")));
         ClearPending();
         return;
