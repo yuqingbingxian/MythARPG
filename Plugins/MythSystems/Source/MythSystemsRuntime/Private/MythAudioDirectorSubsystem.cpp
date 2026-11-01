@@ -20,11 +20,16 @@ void UMythAudioDirectorSubsystem::Deinitialize()
     if(GetGameInstance())
         if(UMythSettingsSubsystem* Pref=GetGameInstance()->GetSubsystem<UMythSettingsSubsystem>())
             Pref->OnSettingsChanged.RemoveDynamic(this,&UMythAudioDirectorSubsystem::HandleSettingsChanged);
-    StopMusic(0.f);Super::Deinitialize();
+    if(MasterMix && bMixPushed && GetWorld())
+        UGameplayStatics::PopSoundMixModifier(GetWorld(),MasterMix);
+    bMixPushed=false;StopMusic(0.f);Super::Deinitialize();
 }
 void UMythAudioDirectorSubsystem::ConfigureMix(USoundMix* Mix,USoundClass* Master,USoundClass* Music,
     USoundClass* SFX,USoundClass* Dialogue)
 {
+    if(MasterMix && bMixPushed && GetWorld())
+        UGameplayStatics::PopSoundMixModifier(GetWorld(),MasterMix);
+    bMixPushed=false;
     MasterMix=Mix;MasterClass=Master;MusicClass=Music;SFXClass=SFX;DialogueClass=Dialogue;
     ApplyMixLevels();
 }
@@ -33,7 +38,7 @@ void UMythAudioDirectorSubsystem::ApplyMixLevels()
     UWorld* World=GetWorld();
     UMythSettingsSubsystem* Pref=GetGameInstance()?GetGameInstance()->GetSubsystem<UMythSettingsSubsystem>():nullptr;
     if(!World || !Pref || !MasterMix)return;
-    UGameplayStatics::PushSoundMixModifier(World,MasterMix);
+    if(!bMixPushed){UGameplayStatics::PushSoundMixModifier(World,MasterMix);bMixPushed=true;}
     auto SetBus=[World,this](USoundClass* Class,float Volume)
     {if(Class)UGameplayStatics::SetSoundMixClassOverride(World,MasterMix,Class,FMath::Clamp(Volume,0.f,1.f),1.f,.15f,true);};
     SetBus(MasterClass,Pref->GetMasterVolume());
@@ -44,7 +49,7 @@ void UMythAudioDirectorSubsystem::ApplyMixLevels()
 }
 void UMythAudioDirectorSubsystem::HandleSettingsChanged(){ApplyMixLevels();}
 void UMythAudioDirectorSubsystem::HandleMapLoaded(UWorld* World)
-{if(World==GetWorld()){ActiveMusic=nullptr;ApplyMixLevels();}}
+{if(World==GetWorld()){ActiveMusic=nullptr;bMixPushed=false;ApplyMixLevels();}}
 void UMythAudioDirectorSubsystem::SetMusic(USoundBase* Music,float Volume)
 {
     if(!Music || !GetWorld())return;

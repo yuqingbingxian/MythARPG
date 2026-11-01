@@ -30,6 +30,7 @@ private:
     UPROPERTY(Transient) TObjectPtr<USoundClass> DialogueClass;
     FDelegateHandle PostLoadHandle;
     float RequestedMusicVolume=1.f;
+    bool bMixPushed=false;
     UFUNCTION() void HandleSettingsChanged();
     void HandleMapLoaded(UWorld* World);
 };

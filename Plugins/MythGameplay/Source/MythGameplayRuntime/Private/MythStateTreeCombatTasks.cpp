@@ -42,3 +42,10 @@ EStateTreeRunStatus FMythTacticalMoveTask::Tick(FStateTreeExecutionContext& Cont
     }
     return Data.Elapsed>=Data.QueryTimeout?EStateTreeRunStatus::Failed:EStateTreeRunStatus::Running;
 }
+
+void FMythTacticalMoveTask::ExitState(FStateTreeExecutionContext& Context,
+    const FStateTreeTransitionResult& Transition)const
+{
+    FInstanceDataType& Data=Context.GetInstanceData(*this);
+    if(IsValid(Data.Controller) && !Data.bMoving)Data.Controller->CancelTacticalQuery();
+}

@@ -49,15 +49,24 @@ void AMythBossCharacter::HandleDeath()
 {
     if (bDead) return;
     Super::HandleDeath();
-    if (UMythSaveSubsystem* Save = GetGameInstance()->GetSubsystem<UMythSaveSubsystem>())
+    UMythSaveSubsystem* Save=GetGameInstance()?GetGameInstance()->GetSubsystem<UMythSaveSubsystem>():nullptr;
+    if(!Save || BossId.IsNone())return;
+    FMythCampaignSnapshot S=Save->GetSnapshot();
+    if(!S.DefeatedBossIds.Contains(BossId))
     {
-        Save->RecordBossDefeat(BossId);
+        S.DefeatedBossIds.Add(BossId);
+        FMythQueuedSignal Event;
+        Event.ReceiptId=FName(*(FString(TEXT("Event.BossDefeated."))+ChapterId.ToString()+TEXT(".")+BossId.ToString()));
+        Event.EventName=TEXT("BossDefeated");Event.ChapterId=ChapterId;
+        Event.TargetId=BossId;Event.Count=1;
+        S.PendingSignals.Add(Event);
+        // Commit defeat + event in one durable snapshot BEFORE any quest listeners run.
+        if(!Save->SetSnapshot(S,true))
+        {
+            UE_LOG(LogTemp,Error,TEXT("Unable to persist boss defeat %s"),*BossId.ToString());
+            return;
+        }
     }
-    if (UMythEventSubsystem* Events = GetGameInstance()->GetSubsystem<UMythEventSubsystem>())
-    {
-        Events->PublishBossDefeated(BossId, ChapterId);
-    }
-    // Commit Boss defeat, quest advancement and all quest rewards in one snapshot.
-    if (UMythSaveSubsystem* Save=GetGameInstance()->GetSubsystem<UMythSaveSubsystem>())
-        Save->FlushToDisk();
+    if(UMythEventSubsystem* Events=GetGameInstance()->GetSubsystem<UMythEventSubsystem>())
+        Events->DeliverPending();
 }

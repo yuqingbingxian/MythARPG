@@ -28,6 +28,7 @@ public:
     /** Asynchronous EQS tactical positioning query. Call from StateTree, not every frame. */
     UFUNCTION(BlueprintCallable,Category="Myth|AI") bool RequestTacticalPosition();
     UFUNCTION(BlueprintCallable,Category="Myth|AI") bool MoveToTacticalPosition(float AcceptanceRadius=75.f);
+    UFUNCTION(BlueprintCallable,Category="Myth|AI") void CancelTacticalQuery();
     UFUNCTION(BlueprintPure,Category="Myth|AI") bool HasTacticalPosition()const { return bHasTacticalPosition; }
     UFUNCTION(BlueprintPure,Category="Myth|AI") FVector GetTacticalPosition()const { return TacticalPosition; }
     UFUNCTION(BlueprintPure,Category="Myth|AI") bool IsTargetVisible()const {return bTargetVisible;}

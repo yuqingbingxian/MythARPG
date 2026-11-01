@@ -148,3 +148,11 @@ bool AMythEnemyAIController::MoveToTacticalPosition(float AcceptanceRadius)
     return MoveToLocation(TacticalPosition,FMath::Max(10.f,AcceptanceRadius))!=
         EPathFollowingRequestResult::Failed;
 }
+
+void AMythEnemyAIController::CancelTacticalQuery()
+{
+    if(GetWorld())
+        if(UEnvQueryManager* Manager=UEnvQueryManager::GetCurrent(GetWorld()))
+            Manager->SilentlyRemoveAllQueriesByQuerier(*this);
+    PendingQueryId=INDEX_NONE;bHasTacticalPosition=false;
+}

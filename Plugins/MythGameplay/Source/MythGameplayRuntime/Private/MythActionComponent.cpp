@@ -165,7 +165,10 @@ bool UMythActionComponent::StartNode(const FMythComboNode& Node)
         Timer.SetTimer(CancelOpenTimer,this,&UMythActionComponent::OpenDodgeCancelWindow,FMath::Max(.001f,Node.DodgeCancelOpen),false);
         Timer.SetTimer(CancelCloseTimer,this,&UMythActionComponent::CloseDodgeCancelWindow,FMath::Max(.002f,Node.DodgeCancelClose),false);
     }
-    Timer.SetTimer(ActionEndTimer,this,&UMythActionComponent::EndAttackNaturally,Node.Duration,false);
+    // Real montage end delegate is authoritative; timer is a watchdog only.
+    const float WatchdogSeconds=(bPlayed && Node.bUseAnimationNotifies)
+        ? FMath::Max(Node.Duration,Node.Montage->GetPlayLength()+0.15f) : Node.Duration;
+    Timer.SetTimer(ActionEndTimer,this,&UMythActionComponent::EndAttackNaturally,WatchdogSeconds,false);
     return true;
 }
 bool UMythActionComponent::TryAdvance(EMythAttackInput Input)
@@ -252,7 +255,9 @@ bool UMythActionComponent::BeginDodge(UMythDodgeAbility* Ability)
         Timer.SetTimer(IFrameOpenTimer,this,&UMythActionComponent::OpenDodgeIFrames,FMath::Max(.001f,DodgeIFrameOpen),false);
         Timer.SetTimer(IFrameCloseTimer,this,&UMythActionComponent::CloseDodgeIFrames,FMath::Max(.002f,DodgeIFrameClose),false);
     }
-    Timer.SetTimer(ActionEndTimer,this,&UMythActionComponent::EndDodgeNaturally,DodgeDuration,false);
+    const float WatchdogSeconds=(bPlayed && bDodgeUseAnimationNotifies)
+        ? FMath::Max(DodgeDuration,DodgeMontage->GetPlayLength()+0.15f) : DodgeDuration;
+    Timer.SetTimer(ActionEndTimer,this,&UMythActionComponent::EndDodgeNaturally,WatchdogSeconds,false);
     return true;
 }
 void UMythActionComponent::OpenDodgeIFrames()
