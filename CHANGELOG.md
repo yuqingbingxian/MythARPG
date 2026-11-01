@@ -32,3 +32,9 @@
 - Added UI layer router, HUD observer, settings profile subsystem.
 - Extended data audits and added three automation test sources.
 - No chapter-specific content or compiled binaries. Integration remains unverified.
+
+## v0.6 - Encounter lifecycle
+
+- Data-driven enemy wave spawning, tracking and encounter completion.
+- Player-death reset, permanent clear flag and reward transaction.
+- Editor audit for encounter definitions and invalid-data test source.

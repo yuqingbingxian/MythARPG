@@ -42,3 +42,8 @@ transactional narrative commands, widget layer routing, HUD data observation, lo
 settings persistence, extra editor checks and tests. See
 [`Docs/12_FOUNDATION_V05.md`](Docs/12_FOUNDATION_V05.md).
 **Source is not UE5.8 compiled or runtime validated.**
+
+
+### v0.6 encounter runtime
+
+Generic encounter wave/director source added; see [`Docs/13_ENCOUNTER_V06.md`](Docs/13_ENCOUNTER_V06.md).

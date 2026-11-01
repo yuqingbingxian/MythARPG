@@ -33,3 +33,9 @@ for a vertical slice. Do not present source-only subsystems as production comple
 - UI routing, HUD attribute subscriptions and preferences: new source; widgets, mixes and key rebinding pending.
 - Added data asset audits and three source tests; UE5.8 build/PIE/packaging still required.
 - Updated implementation notes: `Docs/12_FOUNDATION_V05.md`.
+
+## v0.6 update
+
+- Added reusable encounter definition/director, multi-wave orchestration, death/reset and one-time clear/reward state.
+- Synchronous class loading and visual encounter presentation require future engine integration.
+- Documentation: `Docs/13_ENCOUNTER_V06.md`.

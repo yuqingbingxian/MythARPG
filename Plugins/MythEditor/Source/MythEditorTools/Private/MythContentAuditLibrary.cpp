@@ -11,6 +11,7 @@
 #include "MythSkillTreeDefinition.h"
 #include "MythNarrativeCommandDefinition.h"
 #include "MythAICombatProfile.h"
+#include "MythEncounterDefinition.h"
 #include "MythPersistentWorldComponent.h"
 
 namespace
@@ -79,7 +80,8 @@ int32 UMythContentAuditLibrary::AuditAllGameAssets(TArray<FString>& OutIssues)
             ClassName == UMythSkillTreeDefinition::StaticClass()->GetFName() ||
             ClassName == UMythDialogueDefinition::StaticClass()->GetFName() ||
             ClassName == UMythNarrativeCommandDefinition::StaticClass()->GetFName() ||
-            ClassName == UMythAICombatProfile::StaticClass()->GetFName();
+            ClassName == UMythAICombatProfile::StaticClass()->GetFName() ||
+            ClassName == UMythEncounterDefinition::StaticClass()->GetFName();
         if (!bRelevant) continue;
         UObject* Asset = AssetData.GetAsset();
         if (!Asset) { OutIssues.Add(AssetData.AssetName.ToString() + TEXT(": could not load")); continue; }
@@ -100,6 +102,11 @@ int32 UMythContentAuditLibrary::AuditAllGameAssets(TArray<FString>& OutIssues)
         {
             FString Message;
             if (!Sequence->Validate(Message)) Issue(OutIssues, Sequence, Message);
+        }
+        if (auto* Encounter = Cast<UMythEncounterDefinition>(Asset))
+        {
+            FString Message;
+            if(!Encounter->Validate(Message))Issue(OutIssues,Encounter,Message);
         }
         if (auto* Profile = Cast<UMythAICombatProfile>(Asset))
         {
