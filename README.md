@@ -50,3 +50,6 @@ Generic encounter wave/director source added; see [`Docs/13_ENCOUNTER_V06.md`](D
 
 ### v0.7 foundation update
 See [Docs/14_RUNTIME_V07.md](Docs/14_RUNTIME_V07.md) for runtime reliability changes, open integration gaps, and tests. This source has **not** been validated by UnrealBuildTool or in PIE.
+
+### v0.8 AI integration source
+Optional StateTree AI + asynchronous EQS tactical query adapter, see [Docs/15_AI_STATETREE_EQS_V08.md](Docs/15_AI_STATETREE_EQS_V08.md). No in-engine validation has been performed.

@@ -6,7 +6,7 @@ public class MythGameplayRuntime : ModuleRules
         PCHUsage = PCHUsageMode.UseExplicitOrSharedPCHs;
         PublicDependencyModuleNames.AddRange(new string[] {
             "Core", "CoreUObject", "Engine", "MythFoundationRuntime",
-            "GameplayAbilities", "GameplayTags", "GameplayTasks", "EnhancedInput", "AIModule"
+            "GameplayAbilities", "GameplayTags", "GameplayTasks", "EnhancedInput", "AIModule", "GameplayStateTreeModule", "StateTreeModule"
         });
         PrivateDependencyModuleNames.AddRange(new string[] {
             "NavigationSystem"

@@ -10,10 +10,16 @@
 #include "Navigation/PathFollowingComponent.h"
 #include "Engine/World.h"
 #include "TimerManager.h"
+#include "Components/StateTreeAIComponent.h"
+#include "EnvironmentQuery/EnvQuery.h"
+#include "EnvironmentQuery/EnvQueryManager.h"
+#include "EnvironmentQuery/EnvQueryTypes.h"
 
 AMythEnemyAIController::AMythEnemyAIController()
 {
     PrimaryActorTick.bCanEverTick=false;
+    StateTreeBrain=CreateDefaultSubobject<UStateTreeAIComponent>(TEXT("StateTreeBrain"));
+    StateTreeBrain->SetStartLogicAutomatically(false);
     Perception=CreateDefaultSubobject<UAIPerceptionComponent>(TEXT("SightPerception"));
     SightConfig=CreateDefaultSubobject<UAISenseConfig_Sight>(TEXT("SightConfig"));
     SightConfig->SightRadius=1400.f;
@@ -32,11 +38,22 @@ void AMythEnemyAIController::OnPossess(APawn* Pawn)
 {
     Super::OnPossess(Pawn);
     if(Pawn){HomeLocation=Pawn->GetActorLocation();DecisionRng.Initialize(GetTypeHash(Pawn->GetFName()));}
-    GetWorldTimerManager().SetTimer(DecisionTimer,this,&AMythEnemyAIController::EvaluateCombat,.25f,true);
+    PendingQueryId=INDEX_NONE;
+    bHasTacticalPosition=false;
+    if(bUseStateTree)
+        StateTreeBrain->StartLogic();
+    else
+        GetWorldTimerManager().SetTimer(DecisionTimer,this,&AMythEnemyAIController::EvaluateCombat,.25f,true);
 }
 void AMythEnemyAIController::OnUnPossess()
 {
     GetWorldTimerManager().ClearTimer(DecisionTimer);
+    if(StateTreeBrain && StateTreeBrain->IsRunning())StateTreeBrain->StopLogic(TEXT("Unpossess"));
+    if(GetWorld())
+        if(UEnvQueryManager* Manager=UEnvQueryManager::GetCurrent(GetWorld()))
+            Manager->SilentlyRemoveAllQueriesByQuerier(*this);
+    PendingQueryId=INDEX_NONE;
+    bHasTacticalPosition=false;
     ForgetCombatTarget();
     Super::OnUnPossess();
 }
@@ -94,4 +111,40 @@ void AMythEnemyAIController::EvaluateCombat()
     if(bStarted)
     {LastAttackAt=Now;if(Choice)AttackCooldowns.Add(Choice->AttackId,Now);}
     else if(Director)Director->ReleaseAttack(Enemy);
+}
+
+void AMythEnemyAIController::EvaluateCombatStep()
+{
+    // One invocation per StateTree tick/task event. The legacy mode calls the same method via timer.
+    EvaluateCombat();
+}
+
+bool AMythEnemyAIController::RequestTacticalPosition()
+{
+    if(!TacticalPositionQuery || !GetPawn() || !GetWorld() || PendingQueryId!=INDEX_NONE)
+        return false;
+    bHasTacticalPosition=false;
+    FEnvQueryRequest Request(TacticalPositionQuery,this);
+    PendingQueryId=Request.Execute(EEnvQueryRunMode::SingleResult,this,
+        &AMythEnemyAIController::OnTacticalQueryFinished);
+    return PendingQueryId!=INDEX_NONE;
+}
+
+void AMythEnemyAIController::OnTacticalQueryFinished(TSharedPtr<FEnvQueryResult> Result)
+{
+    if(!Result.IsValid() || Result->QueryID!=PendingQueryId)return; // Stale completion after reset.
+    PendingQueryId=INDEX_NONE;
+    bHasTacticalPosition=false;
+    if(!GetPawn() || Result->IsAborted() || !Result->IsSuccessful() || Result->Items.IsEmpty())return;
+    const FVector NewPosition=Result->GetItemAsLocation(0);
+    if(NewPosition.ContainsNaN())return;
+    TacticalPosition=NewPosition;
+    bHasTacticalPosition=true;
+}
+
+bool AMythEnemyAIController::MoveToTacticalPosition(float AcceptanceRadius)
+{
+    if(!GetPawn() || !bHasTacticalPosition)return false;
+    return MoveToLocation(TacticalPosition,FMath::Max(10.f,AcceptanceRadius))!=
+        EPathFollowingRequestResult::Failed;
 }

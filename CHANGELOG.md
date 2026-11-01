@@ -46,3 +46,9 @@
 - Expand save-state invariants and add a validation automation source test.
 - Scope one-shot Boss signal receipts by chapter ID.
 - Add `Scripts/verify_runtime_v07.py` (static only; UE execution remains unverified).
+
+## v0.8 — optional StateTree AI and async EQS adapter
+
+- StateTree AI Controller component, legacy policy fallback, Blueprint-callable combat decisions.
+- EQS tactical position query and delayed-query teardown protection.
+- GameplayStateTree modules/dependencies and editor integration instructions.
