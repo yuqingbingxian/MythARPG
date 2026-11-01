@@ -1,35 +1,35 @@
-# MythARPG v0.7 — runtime reliability pass (source-only)
+# 14｜v0.7 运行时稳定性修复
 
-## Implemented
+> 本文总结 v0.7 的已提交源码与测试要求，不是 UE5.8 的运行报告。
 
-- **Async encounter class preload:** encounter enters `Preparing`, requests all wave enemy classes in one streamable load, and starts combat only after all classes are resident. No wave performs a blocking `LoadSynchronous` for enemy classes. A held streamable handle keeps classes resident until the encounter ends.
-- **Cancellation and failed-wave cleanup:** reset/death/EndPlay clears pending loads, player and enemy delegates, active spawns, and wave index. Late callbacks cannot re-enter cancelled encounters.
-- **UI map lifecycle:** game-instance UI router removes old-world widgets and focus during map transitions, releases only pause it owns, and resolves modal focus by layer precedence rather than insertion order.
-- **Save validation:** rejecting malformed objective counts, null identity keys and absurd collection sizes before in-memory state replacement or disk serialization. A new Unreal automation source test covers sample invalid states.
-- **Boss signal namespace:** once-only boss signal receipt is now scoped by chapter plus Boss ID (rather than Boss ID alone).
+## 一、遭遇战预加载
 
-## Still NOT verified
+`AMythEncounterDirector` 增加 Preparing 状态，在战斗开始前异步加载全部敌人类。资源准备完毕才开始 Running，避免波次中调用阻塞式类加载。
 
-- This environment cannot run UnrealHeaderTool, UnrealBuildTool, editor PIE or a packaged build.
-- Asynchronous completion timing, AI possession during spawn, GC references and world-travel focus behavior MUST be tested in the editor.
-- No Chapter01 content was created.
+取消或失败时清理 Streamable Handle、玩家和敌人死亡回调、ActiveEnemies 与波次状态。加载完成的**迟到回调**不应重新启动已经取消的遭遇战。
 
-## Verification steps for the Unreal integration stage
+### 验证案例
 
-1. Start an encounter with an unloaded enemy soft class. Confirm `Idle → Preparing → Running`; record hitch metrics.
-2. Reset or kill the player while `Preparing`. Confirm no spawn and no late completion transition.
-3. Advance across two waves; verify the second wave no longer invokes blocking load.
-4. Open and close UI across a hard map change; verify pause state and focus restored.
-5. Run `MythARPG.Foundation.Save.SnapshotValidation` in Session Frontend automation.
-6. Validate duplicate `BossId` in two distinct chapters yields distinct signal receipts.
+1. 使用尚未加载的软敌人类启动遭遇战，观察 Idle → Preparing → Running。
+2. 在 Preparing 阶段销毁导演/重置战斗，验证没有意外生成敌人。
+3. 连续两个波次后使用 Insights 观察是否有明显的类加载卡顿。
 
-## Next required commercial-grade work
+## 二、UI 跨地图清理
 
-- Animation montage / Motion Warping end-to-end execution, strike windows and synchronous paired finisher animations.
-- Real StateTree/EQS task bindings and behavior profile editor data validation.
-- Persistent narrative event outbox and failure-safe achievement/reward delivery.
-- Player rebinding persistence and device-specific Common UI focus/accessibility.
-- Multi-slot save profiles, crash recovery in mid-travel, platform adapters and cloud conflict policy.
-- In-engine functional tests, dedicated memory/performance gates, loading QA, and shipping build pipeline.
+`UMythUIRouterSubsystem` 在地图切换时移除旧世界 Widget，恢复由 Router 自己拥有的输入/暂停状态。Modal 焦点按照 UI 层优先级安排，不能让旧世界 UI 阻塞新地图。
 
-**Status:** Source implementation and static checks, NOT production ready.
+验证：打开暂停菜单时触发切图，确认加载成功后不会保留旧焦点、旧 Widget 或错误的游戏暂停。
+
+## 三、存档快照合法性
+
+扩展 `UMythSaveSubsystem::ValidateSnapshot`：校验关键身份字段、目标计数和数据集合大小，避免加载明显不合法的任务/世界状态。
+
+在 Unreal Automation 搜索 `MythARPG.Foundation.Save.SnapshotValidation`。Python 静态检查不能证明存档测试已通过。
+
+## 四、Boss 事件收据
+
+把一次性 Boss 信号的身份约束扩大为 ChapterId + BossId，避免跨章节出现相同 BossId 时误判重复。
+
+## 仍需处理
+
+旧式同步资源加载审计、地图/导航回调、Outbox、输入重绑、真实动画和 Shipping 验证。后续进展参见 [15](15_AI_STATETREE_EQS_V08.md) 与 [17](17_FOUNDATION_V10.md)。

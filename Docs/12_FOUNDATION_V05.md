@@ -1,73 +1,33 @@
-# v0.5 shared systems implementation
+# 12｜v0.5 通用系统：防御、感知 AI、叙事命令、UI 与设置
 
-This is **source code**, not a tested Unreal build. No Chapter01 content has been authored.
+> 历史版本记录。本版有对应 C++ 源码，但没有任何已执行的 UE 编译/PIE 结果。
 
-## Newly added
+## 一、格挡与招架：为什么从角色中分离出来？
 
-### Defense and combat
-- `UMythDefenseComponent` is created on every combat character.
-- Front-arc guard reduces health/poise damage and spends stamina; insufficient stamina breaks guard.
-- Parry grants a short configurable response window and cancels the attacking ability when successful.
-- Dodge removes guard, death and stagger clear defense state; attack is rejected while guarding.
-- Player Blueprint must bind `GuardAction` (Started/Completed) and `ParryAction` (Started).
-- The current parry response cancels the attacker; animation/hit reaction and finisher sync are *not implemented*.
+`UMythDefenseComponent` 集中处理防御资格和伤害规则：正面格挡消耗精力、减少生命/韧性损失；招架有短暂有效窗口，成功后允许中断攻击者；精力不足导致格挡失败。这样普通敌人和 Boss 可以共用防御逻辑，而不必把它复制进每一个角色蓝图。
 
-### Enemy policy and sensory AI
-- AI Perception sight drives target acquisition; target memory, return-to-home/leash, cooldowns, distance and weighted attack selection are authored in `UMythAICombatProfile`.
-- `bDebugAcquirePlayerWithoutSight` retains a testing-only option (default false).
-- `UMythCombatDirectorSubsystem` continues limiting simultaneous attacks.
-- No StateTree/EQS orchestration in this version. The AI policy is explicitly an adapter, not a finished boss AI.
+玩家输入中的 `GuardAction` 与 `ParryAction` 分别触发持续防御与瞬时招架。闪避、死亡、硬直时应清理防御状态。真实战斗还需要动画反馈、受击、霸体及多段命中场景的集成测试。
 
-### Quest and narrative
-- `FMythQuestBranch` enables ordered conditional stage transitions using persisted world values, with `NextStageId` as fallback.
-- `UMythNarrativeCommandDefinition` supports world changes, currency additions, chapter unlocks, rewards, and post-commit gameplay signals.
-- `UMythNarrativeCommandSubsystem` applies commands to a copy of the campaign snapshot and commits once, with a stable one-time receipt ID.
-- Dialogue choices can reference an action sequence; conditions, commands and direct choice world flag are applied to the same snapshot.
-- **Important:** event dispatch after commit is not a durable outbox. A crash in between can lose an emitted event. Receipts must be stable, and critical gameplay state must be written directly in the snapshot rather than depending solely on post-commit events.
+## 二、AI 感知与攻击规则
 
-### UI and preferences
-- `UMythUIRouterSubsystem` owns a local widget stack for HUD/Menu/Modal/Cinematic layers, handles input mode and router-owned pause.
-- `UMythHUDViewModel` observes Health/Stamina/Poise and exposes normalized values without UI polling.
-- `UMythSettingsSubsystem` persists subtitle, input camera preferences and master/music/effects/dialogue levels independently of campaign progress. Scalability level is applied through `UGameUserSettings`.
-- **Not yet bound to user-provided assets:** widget Blueprints, UI visual layouts, mix buses, camera settings consumers, user-defined key rebinding, platform accessibility and localization.
+`AMythEnemyAIController` 通过 AI Perception 追踪目标，并用 `UMythAICombatProfile` 配置追击距离、目标遗忘、攻击距离、冷却与权重。`UMythCombatDirectorSubsystem` 为多个敌人协调同时进攻的压力。AI 负责“选择动作”，攻击和伤害仍由 GAS 执行。
 
-### Editor and tests
-- Editor audits now scan narrative command sequences and AI attack profiles.
-- Added source tests for AI attack choices, quest branch selection, and idempotent narrative commands.
-- CI structural checks now include v0.5; these are not UHT/UnrealBuildTool tests.
+v0.5 尚无完整 StateTree；后续 v0.8 已增加 StateTree/EQS 适配与原生任务，见 [15](15_AI_STATETREE_EQS_V08.md)。
 
-## Class wiring
+## 三、可分支任务与剧情事务
 
-```text
-MythGameplayRuntime
-  MythCombatCharacter
-    + MythDefenseComponent
-    + MythActionComponent
-    + MythWeaponTraceComponent
-  MythEnemyAIController
-    + UAIPerceptionComponent
-    + MythAICombatProfile (optional Data Asset)
+任务阶段加入按条件选择的下一阶段，`UMythNarrativeCommandDefinition` 把改变世界标志、发放货币/奖励、章节解锁等后果表达为有序命令。
 
-MythSystemsRuntime
-  MythNarrativeCommandSubsystem
-    -> MythSaveSubsystem / MythRewardSubsystem / MythEventSubsystem
-  MythNarrativeSubsystem
-    -> NarrativeCommandSubsystem (dialogue action)
-  MythQuestSubsystem
-    -> QuestDefinition conditional branch
-  MythUIRouterSubsystem
-  MythSettingsSubsystem
-  MythHUDViewModel
-```
+`UMythNarrativeCommandSubsystem` 应将多个变更放进同一份快照再提交，避免“奖励已给但任务未完成”。通过稳定收据防重复。但 v0.5 的提交后广播不是持久消息队列，崩溃可能导致业务事件没送达；v1.0 增加 Outbox，见 [17](17_FOUNDATION_V10.md)。
 
-## Known release blockers (not complete)
+## 四、UI 与游戏偏好
 
-1. UE5.8 compilation, UnrealHeaderTool verification and in-editor runtime tests.
-2. Montage task synchronization, Motion Warping, directional hit reactions and executions.
-3. StateTree/EQS wiring, boss fight arena lifecycle, AI navigation edge cases.
-4. HUD/menus in UMG, key-rebinding UX, applied sound mix, full localizations.
-5. Durable gameplay-event outbox, multiple profiles/slots, cloud conflict resolution.
-6. Full asset-data validation, cross-map GUID scanning and packaged build CI.
-7. Long-run performance profiling, crash telemetry, accessibility regression and QA.
+- `UMythUIRouterSubsystem`：将 Widget 分成 HUD/Menu/Modal/Cinematic 等层次，管理输入模式、焦点和自己申请的暂停。
+- `UMythHUDViewModel`：观察角色生命、精力和韧性，给蓝图 HUD 提供数据。
+- `UMythSettingsSubsystem`：保存字幕、镜头、各类音量与画质设置，并与游戏存档分离。
 
-Do not advertise this uncompiled code as production-ready. No `.zip`, `.umap`, `.uasset` or built executables are committed.
+这些只是**功能底座**。实际界面仍要在编辑器创建 Widget Blueprint，声音要创建 SoundMix/SoundClass 资产，键位重绑要配置 Player Mappable 映射。
+
+## 五、验证和风险
+
+新增任务分支、攻击选择、剧情指令等静态/自动化测试源码；尚无运行日志。必须测试同一输入重复触发、NPC 选项改变任务时退出游戏、UI 切换地图后焦点恢复，以及已发奖励的事务重放。
