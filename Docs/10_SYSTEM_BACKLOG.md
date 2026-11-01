@@ -1,41 +1,28 @@
-# Remaining non-content foundation backlog
+# 10｜商业级通用底层待办与验收基线
 
-Status labels: `source` = implemented source but uncompiled, `contract` = API only,
-`pending` = not coded yet. No system is considered UE-integrated until verified.
+> 更新至 v1.0 候选源码。**已写出 C++ != 已通过 UBT/UHT != 已通过 PIE/Shipping**。本表是当前实际仍需完成的工作，不再照搬旧版待办。
 
-| System | v0.3 status | Remaining work for shipping standard |
-|---|---|---|
-| Combat input/combo/stamina/poise | source v0.2 | Montage/warp/defense/finisher validation |
-| Boss data and attack director | source v0.3 | Phase transaction, arena reset, ability pools |
-| AI | prototype + director | Perception/StateTree/EQS/path edge cases |
-| Save/campaign | source v0.4 dual-generation/checksum/recovery | Engine and power-loss failure injection, cloud/platform adapters, slot UI |
-| Chapter registry | source v0.4 soft-map travel state machine | Map-load timeouts, packaging validation, crash startup recovery |
-| World persistent actors | source v0.3 | Editor GUID validation, per-chapter state partitions |
-| Inventory/equip/currency | source v0.3 | Equipment attribute effects, item use, UI, validation |
-| Crafting/shop | source v0.3 | Selling, restock, pricing modifiers, rollback tests |
-| Progression/skill DAG | source v0.3 | Skill grant-to-GAS and refund rules |
-| Quests and narrative | source v0.3 | Branching quest graph, event error recovery, broader command executor |
-| Interact and checkpoint | source v0.3 | Multi-option targeting, exact spawn registry |
-| Audio/gameflow | source v0.3 | Mix states, cinematic input/Sequencer integration |
-| UI/HUD/settings | contract | UI routing, HUD ViewModels, persistent settings |
-| Editor tooling | source v0.4 manual audits | CI commandlets, cross-map ID validation, diagnostics panel |
-| Automated tests | source (unit subset) | PIE and functional/load/save tests in engine |
-| Release | pending | Packaging, crash capture, profiling, localization |
+| 领域 | 已有源码 | 尚需验证或实现 |
+| --- | --- | --- |
+| 角色/战斗 | GAS、连招、命中窗口、精力、韧性、格挡招架、锁定、处决组件 | UE 编译、真实动画窗口、受击与 Root Motion、帧率变化回归 |
+| AI/Boss | 感知、StateTree Task、EQS 查询、Boss 阶段、Encounter 波次 | StateTree/EQS 资产、NavMesh 失败恢复、Boss 演出与阶段实机测试 |
+| 存档 | 快照、双代 A/B、CRC、旧档迁移、异步写、Outbox | 崩溃注入、多槽、平台与云端冲突、恢复测试 |
+| 章节/世界 | 章节目录、硬切图协调、持久 ID、恢复标志 | 流送、跨图对象恢复、章节入口有效性测试 |
+| RPG | 背包、装备、制作、商店、成长与奖励 | 真正的 UI、能力授予验证、异常交易回归 |
+| 任务/剧情 | 任务分支、对话、指令事务、事件去重 | 内容配置、过场跳过一致性、重复投递回归 |
+| UI/音频/输入 | Widget 路由、HUD ViewModel、设置、SoundMix、重绑定 | UMG/Common UI 具体页面、音频资产、手柄/焦点和无障碍 |
+| 编辑器/CI | 内容审核与 Python 静态脚本 | 跨地图批量 GUID 校验、Windows UE 构建、自动化功能测试 |
+| 发行 | 源码与配置 | Cooking、Packaging、Shipping、崩溃报告、性能与长期稳定性 |
 
-Do not add Chapter01 content until generic runtime contracts are stable enough
-for a vertical slice. Do not present source-only subsystems as production complete.
+## 正式完成标准（DoD）
 
-## v0.5 progress update
+一个系统必须通过：源码编译、最小资源配置、PIE 正常和异常路径、自动化测试、跨地图清理、目标硬件表现、文档同步。整个通用框架至少要在一个**测试灰盒关卡**打通“移动 → 战斗 → Boss → 任务 → 装备 → 保存 → 切图 → 重载”。
 
-- Guard/parry/guard-break: new source with stamina and frontal checks; hit reactions and cinematic finishing remain pending.
-- AI sight acquisition + weighted data-driven attacks: new source, **not** StateTree/EQS-complete.
-- Conditional quest branches and one-time narrative sequences: new source; durable signal outbox pending.
-- UI routing, HUD attribute subscriptions and preferences: new source; widgets, mixes and key rebinding pending.
-- Added data asset audits and three source tests; UE5.8 build/PIE/packaging still required.
-- Updated implementation notes: `Docs/12_FOUNDATION_V05.md`.
+## 优先顺序
 
-## v0.6 update
+1. UBT/UHT 首次编译并修复错误；
+2. 用临时 Montage、StateTree、EQS、UMG、SoundMix、Sequencer 资源完成集成；
+3. 测试中断、超时、存档损坏、重复奖励与跨地图回滚；
+4. 运行 Shipping 功能和性能回归。
 
-- Added reusable encounter definition/director, multi-wave orchestration, death/reset and one-time clear/reward state.
-- Synchronous class loading and visual encounter presentation require future engine integration.
-- Documentation: `Docs/13_ENCOUNTER_V06.md`.
+不应继续凭类数量判断项目完成度。详见 [08 集成检查](08_INTEGRATION_QA.md) 和 [17 最新候选](17_FOUNDATION_V10.md)。

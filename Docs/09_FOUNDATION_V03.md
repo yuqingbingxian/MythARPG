@@ -1,45 +1,33 @@
-# v0.3 Shared Runtime Foundation (no chapter assets)
+# 09｜v0.3 通用运行时：章节、背包、任务和世界状态
 
-## Scope actually implemented
+> 历史版本记录，描述 v0.3 引入的功能。最新系统边界以 [README](../README.md) 和 [17](17_FOUNDATION_V10.md) 为准。本工程未经过 Unreal 引擎编译或运行验证。
 
-- Persistent `FMythCampaignSnapshot` with **V1 -> V2** migration, dirty state,
-  synchronous flush, async snapshot writer, and one-slot backward-compatible
-  player/Boss APIs.
-- `UMythChapterSubsystem` resolves `UMythChapterCatalog` and changes the chapter
-  state without hardcoding concrete chapter references into the runtime.
-- `UMythWorldStateSubsystem` is durable and contains only primitive counters/flags.
-- Inventory (`ItemCatalog`, unique GUID equipment instances, stacking, currency),
-  skill progression, skill DAG validation, recipes, transactional shop purchase.
-- Quest (`QuestCatalog`, ordered stages, objective counters, matching gameplay
-  events, completion flag). Generic `FMythGameplaySignal` bridges enemy death,
-  Boss defeat and dialogue completion into quest objectives. Reward definitions
-  stage items/currency/XP/flags in the same snapshot as quest completion.
-- Dialogue nodes / conditional choices / durable choice world flags.
-- Interactable contract, raycast interaction component, persistent world object.
-- Checkpoints and screen flow/audio orchestration services.
-- Boss phase definition assets and token-limited multi-enemy combat coordination.
+## 为什么要新增这些模块？
 
-## Module DAG
+v0.2 主要解决“玩家怎样打敌人”。但一款长篇 ARPG 还必须回答“打完以后获得什么、任务怎样推进、切图以后记住什么”。因此新增 **MythSystemsRuntime**，并由 **MythFoundationRuntime** 保管跨地图进度快照。
 
-```
-MythFoundationRuntime
-      ^         ^
-      |         |
-MythGameplayRuntime
-      ^
-      |
-MythSystemsRuntime
-      ^
-      |
-MythARPG (game module)
+```mermaid
+flowchart BT
+  G["MythGameplayRuntime：角色与战斗"] --> F["MythFoundationRuntime：存档与章节"]
+  S["MythSystemsRuntime：任务/背包/剧情"] --> F
+  S --> G
 ```
 
-No chapter-specific classes, maps, enemy assets, quests or story scripts were
-created in v0.3. Data catalogs are empty until designers register assets.
+## 核心类与职责
 
-## Asset bootstrap
+| 类 | 管什么 | 如何使用 |
+| --- | --- | --- |
+| `FMythCampaignSnapshot` | 角色、物品、任务、章节和世界标志 | 由 SaveSubsystem 管理，不由 UI 直接改 |
+| `UMythChapterSubsystem` | 注册和解锁章节 | 在 ChapterCatalog 中登记稳定 ChapterId |
+| `UMythInventorySubsystem` | 物品、货币、装备和制作 | `AddItem`、`Equip`、`Craft` |
+| `UMythQuestSubsystem` | 任务和目标计数 | `StartQuest`、`ReportGameplayEvent` |
+| `UMythNarrativeSubsystem` | 运行对话节点 | `StartDialogue`、`Choose`、`StopDialogue` |
+| `UMythCheckpointSubsystem` | 记录检查点 | 调用 `ActivateCheckpoint` |
+| `UMythWorldStateSubsystem` | 世界永久标志和计数 | 通过稳定 ID 恢复场景变化 |
 
-Create catalog assets in Unreal, then set their paths under the game config:
+## 资源目录怎么注册
+
+在 Unreal 创建 ChapterCatalog、ItemCatalog、QuestCatalog、ProgressionRules、SkillTreeDefinition 的数据资产。可以通过 Bootstrap 的配置引用：
 
 ```ini
 [/Script/MythSystemsRuntime.MythBootstrapSubsystem]
@@ -50,49 +38,10 @@ ProgressionRulesPath=/Game/Core/Data/DA_Progression.DA_Progression
 SkillTreePath=/Game/Core/Data/DA_Skills.DA_Skills
 ```
 
-Alternatively call `InitializeCatalogs` at startup. Null catalogs intentionally
-leave their feature disabled rather than crash. The above paths are examples,
-**not assets included in this repository**.
+以上路径仅为示例，仓库不包含这些 UAsset。也可在启动时调用 `UMythBootstrapSubsystem::InitializeCatalogs`。未注册内容目录的情况下，相应功能可能不可用。
 
-### Runtime uses
+## 历史限制及后续变化
 
-- `UMythInventorySubsystem::AddItem` / `Craft` / `Equip` / `GrantOnce`.
-- `UMythQuestSubsystem::StartQuest`, `ReportGameplayEvent`.
-- `UMythNarrativeSubsystem::StartDialogue` / `Choose` / `StopDialogue`.
-- `UMythCheckpointSubsystem::ActivateCheckpoint` (flushes snapshot).
-- `UMythSaveSubsystem::RequestAsyncSave()` after safe checkpoints.
-- Persistent Actors use unique `PersistentId`, restored via BP event.
-- Boss phases configured with `UMythBossPhaseDefinition` and generic cues.
+v0.3 的异步存档尚不具备完整磁盘回退；v0.4 引入 A/B 两代存档。任务原先主要是有序阶段计数，v0.5 增加条件分支，v1.0 增加持久事件队列。AI 最初只做规则决策，v0.8 增加 StateTree/EQS 接口。
 
-## Important boundaries / risks
-
-1. **No UE compile, UnrealHeaderTool, PIE or packaged-game validation done.**
-   This is source-level implementation and an API contract, not certified shipping code.
-2. Async save writes a copied in-memory SaveGame object but does not yet implement
-   disk-level backup/replace/checksum/rollback. Test concurrent updates before shipping.
-3. Database-free transaction behavior is in-memory atomic; progress is durable
-   only after a successful flush. A crash before flush loses staged mutations.
-4. Item/shop/quest catalog lookups are synchronous `LoadSynchronous` prototypes.
-   Replace with an Asset Manager prefetch/async loading contract once asset budgets
-   are known. Do not call them mid-frame in heavy content loops.
-5. Quests presently use ordered stages + objective counts, not arbitrary
-   condition graph branching or a full general-purpose action command executor.
-   The new typed signal broker and basic atomic completion rewards still require
-   full in-engine validation, failure injection and content-authoring safeguards.
-6. Boss phase cues are Blueprint implementable hooks; phase choreography,
-   cancel windows, invulnerability and arena scene ownership still need work.
-7. AI combat coordinator is implemented, but the legacy enemy controller still
-   uses a timer-based distance AI, not production StateTree/Perception/EQS.
-8. UI, cinematics, animation rig, input rebinding, accessibility, editor validators,
-   difficulty settings, localization and shipping patch pipeline require separate
-   engine integration. Foundation APIs reserve those seams; they are not finished.
-
-## Verification
-
-```sh
-python Scripts/verify_structure.py
-python Scripts/verify_systems.py
-```
-
-These tests are **static only**. Use Unreal automation tests after engine setup:
-`MythARPG.Systems.*`, `MythARPG.Combat.Boss.Phases`.
+**这些是源码演进，不等于实际引擎集成已完成。** 完整使用流程请看 [README](../README.md)。

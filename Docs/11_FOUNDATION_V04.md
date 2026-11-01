@@ -1,96 +1,40 @@
-# v0.4: campaign reliability and content auditing
+# 11｜v0.4 双代存档、章节切换和编辑器资源审计
 
-This iteration changes **shared runtime foundations**, not Chapter01 content.
-No `.umap`, `.uasset`, art, or executable builds are included.
+> 历史版本说明。仅是源码实现，未在 UE5.8 引擎运行验证。
 
-## A. Two-generation PC save storage
+## 为什么改造存档
 
-The original v0.3 single `Saved/SaveGames/Campaign_00.sav` could be damaged
-by interrupted writes. v0.4 introduces `FMythSaveStorage` (a non-UObject
-storage adapter) that alternates:
+原来的 `Campaign_00.sav` 是单文件形式，若覆盖时断电会丢失最新有效数据。v0.4 新增 `FMythSaveStorage`，交替保存至：
 
-- `Saved/SaveGames/Campaign_00_A.mythsav`
-- `Saved/SaveGames/Campaign_00_B.mythsav`
+```text
+Saved/SaveGames/Campaign_00_A.mythsav
+Saved/SaveGames/Campaign_00_B.mythsav
+```
 
-Each file stores magic, envelope format version, increasing generation,
-payload length, and CRC32. The payload is UE's normal `SaveGameToMemory`
-serialization, not custom UObject serialization. The store selects the
-highest *checksummed* valid generation; if one is corrupt, the older one can
-still load. A new generation only replaces the inactive file. The on-disk
-legacy `.sav` file is never deleted by migration. Two corrupt modern copies
-are treated as corrupt and do not silently roll back to an arbitrarily old
-legacy file. The write path verifies its temporary file before moving it.
+每份文件带格式标识、代际编号、有效负载长度和 CRC32。读取时选择最新且校验有效的代；最新一份损坏时尝试使用较旧一代。旧版 `.sav` 的迁移入口保留。
 
-This is **PC filesystem storage**, NOT yet a console-save-provider abstraction
-or a fully platform-atomic rename. A sudden power loss is expected to leave at
-least one valid earlier generation, but that guarantee still requires native
-filesystem failure-injection testing. CRC detects accidental corruption, not
-malicious tampering. Native backup/cloud-save conflict resolution is pending.
+`UMythSaveSubsystem` 在游戏线程捕获/序列化 UObject 快照，后台只写入字节，防止异步线程直接访问 UObject。CRC 用于检测意外损坏，**不等于防篡改，也未经过断电故障注入验收**。
 
-`UMythSaveSubsystem` serializes UObject state on the game thread and permits
-only filesystem byte writes on the worker. A mutation after a save snapshot
-was taken remains dirty; no background thread accesses UObjects.
+## 章节切换如何工作
 
-### Save test contracts
+`UMythChapterTravelSubsystem` 的状态从 `Idle` 开始，经 `Resolving → Saving → OpeningMap`，最后为 `Arrived` 或 `Failed`。外部调用 `RequestChapterTravel(ChapterId, CheckpointId)`，新章节需要提前登记与解锁。
 
-`MythARPG.Foundation.Save.TwoGenerationsAndRecovery` tests envelope CRC,
-generation selection, latest-generation corruption and successful recovery.
+它是跨地图硬切换协调器，不是 World Partition 流送管理器。后续版本另增加中断恢复标志，仍需引擎测试。
 
-**Compatibility:** v0.2/v0.3 saves are loaded from `Campaign_00.sav` and
-migrated to the new files at the next save point. Snapshot schema stays v2;
-new disk envelope version starts at 1. Do not remove v1 schema migration fields.
+## 编辑器校验如何使用
 
-## B. Travel coordinator
+`UMythContentAuditLibrary` 是 Editor-only 类，供 Editor Utility Blueprint 调用。它检查：
 
-`UMythChapterTravelSubsystem` owns:
+- 章节和物品 ID 为空、重复以及不合法的配置；
+- Quest Stage、Objective 和条件跳转；
+- SkillTree 依赖；
+- 对话起点和跳转；
+- 当前已加载关卡持久对象的 ID 是否重复。
 
-`Idle -> Resolving -> Saving -> OpeningMap -> Arrived` or `Failed`
+编辑器审核的范围受已加载内容限制，**不能把单关卡通过等同于全项目通过**。
 
-It checks unlock status and active writes, requests the soft world asset,
-commits chapter/checkpoint progress through the save system, opens the level,
-and listens for `PostLoadMapWithWorld`. Duplicate transitions are rejected.
+## 需要测试
 
-- `RequestChapterTravel(ChapterId, CheckpointId)` from game logic.
-- `OnStateChanged` for loading-screen/telemetry hooks.
-- `CancelPendingTravel()` for explicit manual recovery.
+在 Unreal Automation 中运行 A/B 恢复测试；损坏最近一代文件，确认能够安全回退；在章节加载过程中强制终止并重启；在场景中设置重复 PersistentId，确认 Editor Audit 报告错误。
 
-**Limits:** the travel mechanism is a hard map transition, not in-world
-World Partition streaming; it does not yet implement timeouts, progress
-percentage, startup-map recovery from an OS crash mid-travel, or network travel.
-The first map's BeginPlay can see the selected chapter because we persist
-before `OpenLevel`. Unexpected map callback attempts rollback; an OS crash or
-engine map-travel failure without callback needs recovery on next launch.
-No chapter map assets are created by this version.
-
-## C. Editor-only audits
-
-`MythEditorTools` module never enters shipping gameplay. It exposes
-`UMythContentAuditLibrary::AuditAllGameAssets` to Editor Utility Blueprints,
-and `AuditWorldPersistentIds` for an open level. Content checks include:
-
-- Invalid or duplicate chapter/item IDs inside catalogs
-- Missing map references or invalid item stacking limits
-- Quest graph validation (unique stage and objective IDs, missing links)
-- Skill prerequisite graph validation
-- Dialogue start/choice references and duplicated dialogue node IDs
-- Missing or duplicate persistent actor IDs within loaded worlds
-
-Validation only scans /Game assets with the exact known Data Asset types,
-so custom subclasses or external plugin paths need a future audit extension.
-The loaded-world audit only checks the current world, not all chapter maps.
-
-## D. Validation status
-
-The Python checks (`Scripts/verify_structure.py`, `verify_systems.py`, and
-`verify_foundation_v04.py`) validate source structure and integration
-references. They are NOT UnrealBuildTool, UnrealHeaderTool, editor runtime or
-real save recovery tests. Build and runtime integration remain unverified.
-
-## E. Next work (still foundation, not Chapter01)
-
-1. Save slot selection, migration test fixtures and startup recovery screen.
-2. Input and keybind settings, UI routing and HUD view-models.
-3. Formal StateTree/AI Perception/EQS adapters and encounter lifetime.
-4. GAS advanced defense, hit-reaction and animation synchronization.
-5. Dialogue actions, quest branching, conditional world persistence.
-6. Automation test maps, platform packaging and runtime profiling.
+Python 静态检查可运行 `python Scripts/verify_foundation_v04.py`，但不能替代上述测试。
