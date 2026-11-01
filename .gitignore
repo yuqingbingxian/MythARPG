@@ -1,0 +1,29 @@
+# Unreal Engine generated files (never commit)
+Binaries/
+DerivedDataCache/
+Intermediate/
+Saved/
+
+# IDE/build artifacts
+.vs/
+.vscode/
+.idea/
+*.sln
+*.suo
+*.VC.db
+*.VC.opendb
+*.VC.db-shm
+*.VC.db-wal
+*.opensdf
+*.sdf
+*.pdb
+*.obj
+*.log
+
+# Local machine metadata
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Do NOT exclude Source/, Plugins/**/Source/, Config/, Content/
+# or .uproject; these are needed for reproducing a game project.
