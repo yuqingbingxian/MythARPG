@@ -12,7 +12,6 @@ class UStaticMeshComponent;
 class UMythWeaponTraceComponent;
 class UMythActionComponent;
 class UMythDefenseComponent;
-class UMythDefenseComponent;
 struct FOnAttributeChangeData;
 UENUM(BlueprintType)
 enum class EMythFaction : uint8 {Player,Enemy,Neutral};
@@ -36,7 +35,6 @@ public:
     UFUNCTION(BlueprintPure,Category="Combat") EMythFaction GetFaction() const{return Faction;}
     UFUNCTION(BlueprintPure,Category="Combat") UMythActionComponent* GetActionComponent() const{return ActionComponent;}
     UFUNCTION(BlueprintPure,Category="Combat") UMythDefenseComponent* GetDefenseComponent() const{return DefenseComponent;}
-    UFUNCTION(BlueprintPure,Category="Combat") UMythDefenseComponent* GetDefenseComponent() const{return DefenseComponent;}
     UFUNCTION(BlueprintPure,Category="Combat") UMythWeaponTraceComponent* GetWeaponTraceComponent() const{return WeaponTrace;}
     UFUNCTION(BlueprintCallable,Category="Combat") bool RequestMeleeAbility();
     UFUNCTION(BlueprintCallable,Category="Combat") bool RequestHeavyAbility();
@@ -49,7 +47,6 @@ protected:
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UMythAttributeSet> AttributeSet;
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UMythActionComponent> ActionComponent;
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UMythWeaponTraceComponent> WeaponTrace;
-    UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UMythDefenseComponent> DefenseComponent;
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UMythDefenseComponent> DefenseComponent;
     UPROPERTY(VisibleAnywhere,BlueprintReadOnly,Category="Components")TObjectPtr<UStaticMeshComponent> DebugMesh;
     UPROPERTY(EditDefaultsOnly,BlueprintReadOnly,Category="Combat")TObjectPtr<UMythCombatantDefinition> CombatantDefinition;

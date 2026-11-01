@@ -8,7 +8,6 @@
 #include "MythActionComponent.h"
 #include "MythWeaponTraceComponent.h"
 #include "MythDefenseComponent.h"
-#include "MythDefenseComponent.h"
 #include "AbilitySystemComponent.h"
 #include "GameplayAbilitySpec.h"
 #include "GameplayEffect.h"
@@ -26,7 +25,6 @@ AMythCombatCharacter::AMythCombatCharacter()
     AttributeSet=CreateDefaultSubobject<UMythAttributeSet>(TEXT("AttributeSet"));
     ActionComponent=CreateDefaultSubobject<UMythActionComponent>(TEXT("ActionComponent"));
     WeaponTrace=CreateDefaultSubobject<UMythWeaponTraceComponent>(TEXT("WeaponTrace"));
-    DefenseComponent=CreateDefaultSubobject<UMythDefenseComponent>(TEXT("Defense"));
     DefenseComponent=CreateDefaultSubobject<UMythDefenseComponent>(TEXT("Defense"));
     DebugMesh=CreateDefaultSubobject<UStaticMeshComponent>(TEXT("DebugVisual"));
     DebugMesh->SetupAttachment(GetRootComponent());

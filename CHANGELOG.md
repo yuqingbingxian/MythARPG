@@ -52,3 +52,8 @@
 - StateTree AI Controller component, legacy policy fallback, Blueprint-callable combat decisions.
 - EQS tactical position query and delayed-query teardown protection.
 - GameplayStateTree modules/dependencies and editor integration instructions.
+
+## v0.9 — remove duplicate input handlers; add static duplication detector
+
+- Clean up repeated guard/parry declarations, definitions and mappings.
+- Add source duplicate scanner and GitHub CI check.

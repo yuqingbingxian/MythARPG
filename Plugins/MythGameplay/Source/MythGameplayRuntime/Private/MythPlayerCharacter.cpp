@@ -3,7 +3,6 @@
 #include "MythAttributeSet.h"
 #include "MythLockOnComponent.h"
 #include "MythDefenseComponent.h"
-#include "MythDefenseComponent.h"
 #include "AbilitySystemComponent.h"
 #include "Camera/CameraComponent.h"
 #include "GameFramework/SpringArmComponent.h"
@@ -63,9 +62,6 @@ void AMythPlayerCharacter::SetupPlayerInputComponent(UInputComponent* Input)
     if(GuardAction){E->BindAction(GuardAction,ETriggerEvent::Started,this,&AMythPlayerCharacter::GuardStarted);
         E->BindAction(GuardAction,ETriggerEvent::Completed,this,&AMythPlayerCharacter::GuardReleased);}
     if(ParryAction)E->BindAction(ParryAction,ETriggerEvent::Started,this,&AMythPlayerCharacter::Parry);
-    if(GuardAction){E->BindAction(GuardAction,ETriggerEvent::Started,this,&AMythPlayerCharacter::GuardStarted);
-        E->BindAction(GuardAction,ETriggerEvent::Completed,this,&AMythPlayerCharacter::GuardReleased);}
-    if(ParryAction)E->BindAction(ParryAction,ETriggerEvent::Started,this,&AMythPlayerCharacter::Parry);
     if(LockOnAction)E->BindAction(LockOnAction,ETriggerEvent::Started,this,&AMythPlayerCharacter::ToggleLockOn);
     if(SwitchTargetLeftAction)E->BindAction(SwitchTargetLeftAction,ETriggerEvent::Started,this,&AMythPlayerCharacter::SwitchLeft);
     if(SwitchTargetRightAction)E->BindAction(SwitchTargetRightAction,ETriggerEvent::Started,this,&AMythPlayerCharacter::SwitchRight);
@@ -88,9 +84,6 @@ void AMythPlayerCharacter::Look(const FInputActionValue& Value)
 void AMythPlayerCharacter::Attack(const FInputActionValue&){RequestMeleeAbility();}
 void AMythPlayerCharacter::HeavyAttack(const FInputActionValue&){RequestHeavyAbility();}
 void AMythPlayerCharacter::Dodge(const FInputActionValue&){RequestDodgeAbility();}
-void AMythPlayerCharacter::GuardStarted(const FInputActionValue&){if(DefenseComponent)DefenseComponent->BeginGuard();}
-void AMythPlayerCharacter::GuardReleased(const FInputActionValue&){if(DefenseComponent)DefenseComponent->EndGuard();}
-void AMythPlayerCharacter::Parry(const FInputActionValue&){if(DefenseComponent)DefenseComponent->OpenParryWindow();}
 void AMythPlayerCharacter::GuardStarted(const FInputActionValue&){if(DefenseComponent)DefenseComponent->BeginGuard();}
 void AMythPlayerCharacter::GuardReleased(const FInputActionValue&){if(DefenseComponent)DefenseComponent->EndGuard();}
 void AMythPlayerCharacter::Parry(const FInputActionValue&){if(DefenseComponent)DefenseComponent->OpenParryWindow();}

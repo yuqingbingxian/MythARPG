@@ -32,8 +32,6 @@ protected:
     UPROPERTY(EditDefaultsOnly,Category="Input")TObjectPtr<UInputAction> DodgeAction;
     UPROPERTY(EditDefaultsOnly,Category="Input")TObjectPtr<UInputAction> GuardAction;
     UPROPERTY(EditDefaultsOnly,Category="Input")TObjectPtr<UInputAction> ParryAction;
-    UPROPERTY(EditDefaultsOnly,Category="Input")TObjectPtr<UInputAction> GuardAction;
-    UPROPERTY(EditDefaultsOnly,Category="Input")TObjectPtr<UInputAction> ParryAction;
     UPROPERTY(EditDefaultsOnly,Category="Input")TObjectPtr<UInputAction> LockOnAction;
     UPROPERTY(EditDefaultsOnly,Category="Input")TObjectPtr<UInputAction> SwitchTargetLeftAction;
     UPROPERTY(EditDefaultsOnly,Category="Input")TObjectPtr<UInputAction> SwitchTargetRightAction;
@@ -45,9 +43,6 @@ private:
     void Attack(const FInputActionValue& Value);
     void HeavyAttack(const FInputActionValue& Value);
     void Dodge(const FInputActionValue& Value);
-    void GuardStarted(const FInputActionValue& Value);
-    void GuardReleased(const FInputActionValue& Value);
-    void Parry(const FInputActionValue& Value);
     void GuardStarted(const FInputActionValue& Value);
     void GuardReleased(const FInputActionValue& Value);
     void Parry(const FInputActionValue& Value);

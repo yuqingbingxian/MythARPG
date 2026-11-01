@@ -19,3 +19,5 @@ jobs:
         run: python Scripts/verify_runtime_v07.py
       - name: Check v0.8 StateTree/EQS adapter structure
         run: python Scripts/verify_runtime_v08.py
+      - name: Detect duplicated C++ methods and player input bindings
+        run: python Scripts/verify_cpp_duplicates_v09.py
