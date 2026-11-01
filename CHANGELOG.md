@@ -38,3 +38,11 @@
 - Data-driven enemy wave spawning, tracking and encounter completion.
 - Player-death reset, permanent clear flag and reward transaction.
 - Editor audit for encounter definitions and invalid-data test source.
+
+## v0.7 — runtime reliability and async encounter loading
+
+- Preload encounter wave classes asynchronously and cancel handles during teardown.
+- Close UI on map travel and route focus by layer rather than push order.
+- Expand save-state invariants and add a validation automation source test.
+- Scope one-shot Boss signal receipts by chapter ID.
+- Add `Scripts/verify_runtime_v07.py` (static only; UE execution remains unverified).

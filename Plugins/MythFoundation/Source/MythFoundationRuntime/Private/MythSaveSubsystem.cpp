@@ -71,10 +71,19 @@ FMythCampaignSnapshot UMythSaveSubsystem::GetSnapshot() const
     return CurrentSave ? CurrentSave->Campaign : FMythCampaignSnapshot();
 }
 
-bool UMythSaveSubsystem::ValidateSnapshot(const FMythCampaignSnapshot& S) const
+bool UMythSaveSubsystem::ValidateSnapshot(const FMythCampaignSnapshot& S)
 {
     if (S.PlayerLevel < 1 || S.Experience < 0 || S.SkillPoints < 0 ||
         !FMath::IsFinite(S.PlayerHealth) || S.PlayerHealth < 0.f || S.PlayerTransform.ContainsNaN()) return false;
+    // Defend against malformed snapshots before the value reaches a persistent slot.
+    if (S.Inventory.Num() > 20000 || S.Quests.Num() > 5000 || S.Wallet.Num() > 500 ||
+        S.WorldValues.Num() > 100000 || S.AppliedTransactionIds.Num() > 100000) return false;
+    if (S.ChapterId.IsNone() && !S.CheckpointId.IsNone()) return false;
+    for (const FName Skill : S.UnlockedSkills) if (Skill.IsNone()) return false;
+    for (const FName Chapter : S.UnlockedChapterIds) if (Chapter.IsNone()) return false;
+    for (const FName Boss : S.DefeatedBossIds) if (Boss.IsNone()) return false;
+    for (const FName Receipt : S.AppliedTransactionIds) if (Receipt.IsNone()) return false;
+    for (const auto& WorldValue : S.WorldValues) if (WorldValue.Key.IsNone()) return false;
     TSet<FGuid> UniqueInstances;
     for (const FMythItemStack& Item : S.Inventory)
     {
@@ -93,6 +102,10 @@ bool UMythSaveSubsystem::ValidateSnapshot(const FMythCampaignSnapshot& S) const
     for (const FMythQuestRecord& Quest : S.Quests)
     {
         if (Quest.QuestId.IsNone() || QuestIds.Contains(Quest.QuestId))return false;
+        if (Quest.Status > 3) return false;
+        for (const auto& Objective : Quest.ObjectiveCounts)
+            if (Objective.Key.IsNone() || Objective.Value < 0) return false;
+        for (const FName Receipt : Quest.RewardReceiptIds) if (Receipt.IsNone()) return false;
         QuestIds.Add(Quest.QuestId);
     }
     return true;

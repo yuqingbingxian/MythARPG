@@ -20,6 +20,8 @@ class MYTHSYSTEMSRUNTIME_API UMythUIRouterSubsystem : public UGameInstanceSubsys
 {
     GENERATED_BODY()
 public:
+    virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+    virtual void Deinitialize() override;
     UPROPERTY(BlueprintAssignable)FMythUILayerChanged OnLayerChanged;
     UFUNCTION(BlueprintCallable)UUserWidget* PushWidget(TSubclassOf<UUserWidget> Type,EMythUILayer Layer,bool bPauseGame=false);
     UFUNCTION(BlueprintCallable)bool PopWidget(UUserWidget* Widget);
@@ -29,5 +31,7 @@ public:
 private:
     UPROPERTY(Transient)TArray<FMythWidgetEntry> Widgets;
     bool bPauseOwned=false;
+    FDelegateHandle PreLoadMapHandle;
+    void OnPreLoadMap(const FString& MapName);
     void UpdateInputAndPause();
 };

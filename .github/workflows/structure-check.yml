@@ -15,3 +15,5 @@ jobs:
           python Scripts/verify_structure.py
           python Scripts/verify_systems.py
           python Scripts/verify_foundation_v04.py
+      - name: Check v0.7 runtime structure
+        run: python Scripts/verify_runtime_v07.py

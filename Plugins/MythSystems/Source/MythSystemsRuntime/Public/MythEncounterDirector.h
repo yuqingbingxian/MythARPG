@@ -1,13 +1,14 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "GameFramework/Actor.h"
+#include "Engine/StreamableManager.h"
 #include "MythEncounterDirector.generated.h"
 class UMythEncounterDefinition;
 class ATargetPoint;
 class AMythCombatCharacter;
 class AMythEnemyCharacter;
 UENUM(BlueprintType)
-enum class EMythEncounterState : uint8 { Idle, Running, Completed, Failed };
+enum class EMythEncounterState : uint8 { Idle, Preparing, Running, Completed, Failed };
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMythEncounterStateEvent,EMythEncounterState,NewState,int32,WaveIndex);
 /** Wave spawning and encounter lifetime are generic; author placement and content in Editor. */
 UCLASS(Blueprintable)
@@ -33,7 +34,10 @@ private:
     TWeakObjectPtr<AMythCombatCharacter> PlayerRef;
     UFUNCTION()void OnEnemyDeath(AMythCombatCharacter* DeadActor);
     UFUNCTION()void OnPlayerDeath(AMythCombatCharacter* DeadActor);
+    void OnEncounterClassesReady();
     bool StartWave(int32 Index);
+    void AbortEncounter();
+    TSharedPtr<FStreamableHandle> AssetPreload;
     bool FinishEncounter();
     void ClearSpawnedActors();
     void ChangeState(EMythEncounterState NewState);

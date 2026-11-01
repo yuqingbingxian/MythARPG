@@ -47,3 +47,6 @@ settings persistence, extra editor checks and tests. See
 ### v0.6 encounter runtime
 
 Generic encounter wave/director source added; see [`Docs/13_ENCOUNTER_V06.md`](Docs/13_ENCOUNTER_V06.md).
+
+### v0.7 foundation update
+See [Docs/14_RUNTIME_V07.md](Docs/14_RUNTIME_V07.md) for runtime reliability changes, open integration gaps, and tests. This source has **not** been validated by UnrealBuildTool or in PIE.

@@ -21,6 +21,8 @@ public:
     UFUNCTION(BlueprintCallable,Category="Save") bool SetSnapshot(const FMythCampaignSnapshot& NewSnapshot, bool bFlushNow = false);
     UFUNCTION(BlueprintCallable,Category="Save") bool FlushToDisk();
     UFUNCTION(BlueprintCallable,Category="Save") bool RequestAsyncSave();
+    /** Pure validation for editor commandlets, automated tests and runtime callers. */
+    static bool ValidateSnapshot(const FMythCampaignSnapshot& Value);
     UFUNCTION(BlueprintPure,Category="Save") bool IsDirty() const { return bDirty; }
     UFUNCTION(BlueprintPure,Category="Save") bool IsSaveInProgress() const { return bSaving; }
     // Kept for compatibility with the v0.2 character/Boss APIs.
@@ -37,7 +39,6 @@ private:
     uint64 MutationRevision = 0;
     uint64 InFlightRevision = 0;
     const FString SlotName = TEXT("Campaign_00");
-    bool ValidateSnapshot(const FMythCampaignSnapshot& Value) const;
     void MigrateLoadedSave();
     bool SerializeSnapshot(TArray<uint8>& OutBytes) const;
     void OnAsyncSaveCompleted(bool bSuccess);

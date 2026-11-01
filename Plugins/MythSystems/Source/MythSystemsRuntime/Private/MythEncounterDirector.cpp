@@ -9,6 +9,7 @@
 #include "Engine/TargetPoint.h"
 #include "Engine/GameInstance.h"
 #include "Engine/World.h"
+#include "Engine/AssetManager.h"
 AMythEncounterDirector::AMythEncounterDirector(){PrimaryActorTick.bCanEverTick=false;}
 FName AMythEncounterDirector::GetClearFlag()const
 {return Definition?FName(*(FString(TEXT("Encounter.Cleared."))+Definition->ChapterId.ToString()+TEXT(".")+Definition->EncounterId.ToString())):NAME_None;}
@@ -25,18 +26,67 @@ void AMythEncounterDirector::BeginPlay()
 void AMythEncounterDirector::EndPlay(const EEndPlayReason::Type Reason)
 {
     if(PlayerRef.IsValid())PlayerRef->OnCharacterDeath.RemoveDynamic(this,&AMythEncounterDirector::OnPlayerDeath);
-    ClearSpawnedActors();Super::EndPlay(Reason);
+    AbortEncounter();Super::EndPlay(Reason);
 }
 bool AMythEncounterDirector::BeginEncounter(AMythCombatCharacter* Player)
 {
     FString Error;
     if(State!=EMythEncounterState::Idle || !Player || Player->IsDead() || !Definition ||
        !Definition->Validate(Error) || !GetWorld())return false;
-    PlayerRef=Player;Player->OnCharacterDeath.AddUniqueDynamic(this,&AMythEncounterDirector::OnPlayerDeath);
-    ChangeState(EMythEncounterState::Running);
-    if(!StartWave(0))
-    {ResetEncounter();ChangeState(EMythEncounterState::Failed);return false;}
+    TArray<FSoftObjectPath> Paths;
+    for(const FMythEncounterWave& Wave:Definition->Waves)
+        for(const FMythEncounterSpawn& Spawn:Wave.Spawns)
+            Paths.AddUnique(Spawn.EnemyClass.ToSoftObjectPath());
+    if(Paths.IsEmpty())return false;
+    PlayerRef=Player;
+    Player->OnCharacterDeath.AddUniqueDynamic(this,&AMythEncounterDirector::OnPlayerDeath);
+    ChangeState(EMythEncounterState::Preparing);
+    // Preload all wave classes before spawning. Keep handle alive across wave transitions.
+    AssetPreload=UAssetManager::GetStreamableManager().RequestAsyncLoad(
+        Paths,FStreamableDelegate::CreateUObject(this,&AMythEncounterDirector::OnEncounterClassesReady));
+    if(!AssetPreload)
+    {
+        AbortEncounter();ChangeState(EMythEncounterState::Failed);
+        return false;
+    }
+    // Cached classes can complete synchronously; guard against a missed delegate.
+    if(AssetPreload->HasLoadCompleted())OnEncounterClassesReady();
     return true;
+}
+void AMythEncounterDirector::OnEncounterClassesReady()
+{
+    if(State!=EMythEncounterState::Preparing)return; // Cancelled/restarted async request.
+    if(!PlayerRef.IsValid() || PlayerRef->IsDead() || !AssetPreload || !AssetPreload->HasLoadCompleted())
+    {
+        AbortEncounter();ChangeState(EMythEncounterState::Failed);
+        return;
+    }
+    // TSoftClassPtr::Get never performs blocking disk I/O.
+    for(const FMythEncounterWave& Wave:Definition->Waves)
+        for(const FMythEncounterSpawn& Spawn:Wave.Spawns)
+            if(!Spawn.EnemyClass.Get())
+            {
+                AbortEncounter();ChangeState(EMythEncounterState::Failed);
+                return;
+            }
+    ChangeState(EMythEncounterState::Running);
+    if(State!=EMythEncounterState::Running)return; // Blueprint observer may have cancelled the encounter.
+    if(!StartWave(0))
+    {
+        AbortEncounter();ChangeState(EMythEncounterState::Failed);
+    }
+}
+void AMythEncounterDirector::AbortEncounter()
+{
+    if(PlayerRef.IsValid())PlayerRef->OnCharacterDeath.RemoveDynamic(this,&AMythEncounterDirector::OnPlayerDeath);
+    PlayerRef.Reset();
+    ClearSpawnedActors();
+    if(AssetPreload)
+    {
+        AssetPreload->CancelHandle();
+        AssetPreload.Reset();
+    }
+    WaveIndex=INDEX_NONE;
 }
 void AMythEncounterDirector::ClearSpawnedActors()
 {
@@ -52,8 +102,7 @@ void AMythEncounterDirector::ClearSpawnedActors()
 bool AMythEncounterDirector::ResetEncounter()
 {
     if(State==EMythEncounterState::Completed && Definition && Definition->bPermanentClear)return false;
-    if(PlayerRef.IsValid())PlayerRef->OnCharacterDeath.RemoveDynamic(this,&AMythEncounterDirector::OnPlayerDeath);
-    PlayerRef.Reset();ClearSpawnedActors();WaveIndex=INDEX_NONE;
+    AbortEncounter();
     ChangeState(EMythEncounterState::Idle);
     return true;
 }
@@ -65,7 +114,7 @@ bool AMythEncounterDirector::StartWave(int32 Index)
     TArray<TSubclassOf<AMythEnemyCharacter>> LoadedClasses;
     for(const FMythEncounterSpawn& Entry:Wave.Spawns)
     {
-        UClass* Class=Entry.EnemyClass.LoadSynchronous();
+        UClass* Class=Entry.EnemyClass.Get(); // Preloaded before Running; never sync-load on the combat path.
         if(!Class || !Class->IsChildOf(AMythEnemyCharacter::StaticClass()))return false;
         for(int32 I=0;I<Entry.Count;++I)LoadedClasses.Add(Class);
     }
@@ -94,13 +143,16 @@ void AMythEncounterDirector::OnEnemyDeath(AMythCombatCharacter* DeadActor)
     if(!ActiveEnemies.IsEmpty())return;
     if(Definition && Definition->Waves.IsValidIndex(WaveIndex+1))
     {
-        if(!StartWave(WaveIndex+1))ChangeState(EMythEncounterState::Failed);
+        if(!StartWave(WaveIndex+1))
+        {AbortEncounter();ChangeState(EMythEncounterState::Failed);}
     }
-    else if(!FinishEncounter())ChangeState(EMythEncounterState::Failed);
+    else if(!FinishEncounter())
+    {AbortEncounter();ChangeState(EMythEncounterState::Failed);}
 }
 void AMythEncounterDirector::OnPlayerDeath(AMythCombatCharacter* DeadActor)
 {
-    if(DeadActor==PlayerRef.Get() && State==EMythEncounterState::Running)ResetEncounter();
+    if(DeadActor==PlayerRef.Get() &&
+       (State==EMythEncounterState::Running || State==EMythEncounterState::Preparing))ResetEncounter();
 }
 bool AMythEncounterDirector::FinishEncounter()
 {
@@ -117,7 +169,9 @@ bool AMythEncounterDirector::FinishEncounter()
     }
     if(!Save->SetSnapshot(S))return false;
     if(PlayerRef.IsValid())PlayerRef->OnCharacterDeath.RemoveDynamic(this,&AMythEncounterDirector::OnPlayerDeath);
-    PlayerRef.Reset();ChangeState(EMythEncounterState::Completed);
+    PlayerRef.Reset();
+    if(AssetPreload){AssetPreload->ReleaseHandle();AssetPreload.Reset();}
+    ChangeState(EMythEncounterState::Completed);
     if(UMythEventSubsystem* Events=GetGameInstance()->GetSubsystem<UMythEventSubsystem>())
     {
         FMythGameplaySignal Signal;Signal.EventName=TEXT("EncounterCleared");

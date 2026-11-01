@@ -3,7 +3,7 @@
 #include "Engine/GameInstance.h"
 bool UMythEventSubsystem::PublishSignal(const FMythGameplaySignal& Signal)
 {
-    if(Signal.EventName.IsNone() || Signal.Count<=0)return false;
+    if(Signal.EventName.IsNone() || Signal.Count<=0 || !GetGameInstance())return false;
     if(!Signal.StableReceiptId.IsNone())
     {
         UMythSaveSubsystem* Save=GetGameInstance()->GetSubsystem<UMythSaveSubsystem>();
@@ -22,6 +22,6 @@ void UMythEventSubsystem::PublishBossDefeated(FName BossId,FName ChapterId)
     if(BossId.IsNone())return;
     FMythGameplaySignal Signal;
     Signal.EventName=TEXT("BossDefeated");Signal.TargetId=BossId;Signal.ChapterId=ChapterId;
-    Signal.StableReceiptId=FName(*(FString(TEXT("Event.BossDefeated."))+BossId.ToString()));
+    Signal.StableReceiptId=FName(*(FString(TEXT("Event.BossDefeated."))+ChapterId.ToString()+TEXT(".")+BossId.ToString()));
     if(PublishSignal(Signal))OnBossDefeated.Broadcast(BossId,ChapterId);
 }
