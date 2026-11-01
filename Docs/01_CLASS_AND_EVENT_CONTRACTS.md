@@ -1,84 +1,73 @@
-> 历史文档（v0.1）：新战斗代码请以 Docs/06_COMBAT_V02_DESIGN.md 和 Docs/07_EDITOR_SETUP_V02.md 为准。
+# 01｜核心类、调用入口与事件约定
 
-# 01 — Class map, public APIs and stable event contracts
+> 以仓库现有源码类名为准；早期 v0.1 的部分接口描述已经过时。未执行引擎编译。
 
-## Implemented classes (source-level)
+## 一、基础设施
 
-| Class | Module | Purpose | Useful calls |
-|---|---|---|---|
-| `UMythSaveGame` | Foundation | V1 save payload | fields; not accessed directly by gameplay |
-| `UMythSaveSubsystem` | Foundation | current slot state | `SavePlayerState`, `GetSavedPlayerState`, `IsBossDefeated`, `RecordBossDefeat` |
-| `UMythEventSubsystem` | Foundation | domain fact bus | `PublishBossDefeated`, `OnBossDefeated` |
-| `UMythChapterDefinition` | Foundation | Chapter `UPrimaryDataAsset` | `GetPrimaryAssetId` |
-| `UMythAttributeSet` | Gameplay | GAS health, stamina, defense | attribute getters/setters |
-| `UMythCombatantDefinition` | Gameplay | per-character base numbers | `CombatantId`, ranges/damage |
-| `UMythDamageEffect` | Gameplay | instant Health delta GE | SetByCaller `FName("Damage")` (negative) |
-| `AMythCombatCharacter` | Gameplay | player/enemy shared base | request abilities, strike, death |
-| `UMythMeleeAbility` | Gameplay | one attack + recovery | GAS activation / end |
-| `UMythDodgeAbility` | Gameplay | forward dash + i-frames | GAS activation / end |
-| `AMythPlayerCharacter` | Gameplay | inputs, camera, simple save/respawn | `SaveAtCurrentLocation` |
-| `AMythEnemyCharacter` | Gameplay | faction, attack ranges | `GetAggroRange`, `GetAttackRange` |
-| `AMythEnemyAIController` | Gameplay | timer-based chase/attack | `EvaluateCombat` |
-| `AMythBossCharacter` | Gameplay | phases / permanent boss result | `OnPhaseEntered`, `BossId` |
-| `AMythGameMode` | Game | starts player | sets default pawn |
+| 类 | 职责 | 主要公开接口 |
+|---|---|---|
+| `UMythSaveSubsystem` | 维护游戏进度快照和保存过程 | `GetSnapshot`、`SetSnapshot`、`ReloadFromDisk`、`RequestAsyncSave`、`FlushToDisk` |
+| `UMythChapterSubsystem` | 章节登记、查询、解锁 | 与 ChapterCatalog 关联 |
+| `UMythChapterTravelSubsystem` | 请求章节切图和恢复 | `RequestChapterTravel`、`CancelPendingTravel` |
+| `UMythWorldStateSubsystem` | 世界永久/临时标志 | 对外状态查询和更新 |
+| `UMythEventSubsystem` | 跨系统事件广播与信号投递 | 发送/消费相关业务信号 |
 
-## Contract backlog: classes to implement next
+`UMythSaveSubsystem::SetSnapshot` 是跨域提交的底层接口，不建议普通 UI 或 Blueprint 为了方便随意直接调用；优先从任务/背包/剧情业务 API 进入。
 
-**Combat/animation**
-- `UMythCombatComponent`: attack-instance IDs, per-window hit tracking, attack target data.
-- `UMythActionPolicy`: formal block/cancel matrix (Attack, Dodge, Stagger, Death).
-- `UMythComboGraph`: data-only combo nodes + transition windows.
-- `UMythHitWindowNotifyState`: begins/ends precise sword/socket sweep.
-- `UMythPoiseComponent`: poise state, stagger thresholds and forced interruptions.
-- `UMythTargetingComponent` / `UMythLockOnComponent`: queries, switches, occlusion, large targets.
-- `UMythCameraDirectorComponent`: exploration/combat/lock-on/cinematic modes.
+## 二、战斗与 AI
 
-**AI/Boss**
-- `UMythEnemyBrainComponent`: perception context and StateTree runtime binding.
-- `UMythEncounterDirectorSubsystem`: attack pressure budget, leash/return rules.
-- `UMythBossPhaseComponent`: ordered state transitions, guard against double-enter.
-- `UMythBossMechanic`: subclassable mechanics; arena and stage-specific policies.
+| 类 | 负责 | 不应该负责 |
+|---|---|---|
+| `AMythCombatCharacter` | GAS、共同战斗状态、角色生命周期 | 永久保存全部任务 |
+| `AMythPlayerCharacter` | 输入、镜头和玩家操作入口 | 道具交易数据 |
+| `UMythActionComponent` | 连招、动作互斥、取消窗口和清理 | 全局剧情 |
+| `UMythWeaponTraceComponent` | 命中窗口 Sweeps 与去重 | 直接修改存档 |
+| `UMythDefenseComponent` | 格挡、招架和防御状态 | 选择 Boss 剧情 |
+| `UMythExecutionComponent` | 双人 Montage/Motion Warping 处决协调 | 任务推进的唯一真相 |
+| `AMythEnemyAIController` | 感知、移动、请求战斗决策 | 重写 GAS 攻击规则 |
+| `AMythBossCharacter` | Boss 阶段与击败事件 | 单独发明另一套属性 |
+| `AMythEncounterDirector` | 波次加载、敌人生成、清场和重置 | 维护全部章节存档 |
 
-**Progression/world**
-- `UItemDefinition`/`FItemStack`/`FItemInstance`, `UInventoryComponent`, `UEquipmentComponent`.
-- `USkillTreeDefinition`/`USkillTreeRuntime`: dependency DAG; transaction-safe unlock.
-- `UWorldStateSubsystem`, `IMythPersistentObject` and stable editor-assigned GUID.
-- `UMythInteractionComponent`, `IMythInteractable`, `UCheckpointComponent`.
+## 三、内容与用户体验
 
-**Quest/narrative**
-- `UQuestDefinition` (stages, conditions, enter/exit actions, reward).
-- `UQuestRuntimeSubsystem` (stage transitions and replay/idempotence).
-- `UNarrativeDirectorSubsystem` (story events); `UCinematicCoordinator` (Sequencer state & skip finalization).
+| 类 | 职责 | 常见入口 |
+|---|---|---|
+| `UMythBootstrapSubsystem` | 装配章节、物品、任务、成长目录 | `InitializeCatalogs` |
+| `UMythInventorySubsystem` | 物品、装备、货币与制作 | `AddItem`、`RemoveItem`、`Equip`、`Craft`、`GrantOnce` |
+| `UMythQuestSubsystem` | 任务开始与事件推进 | `StartQuest`、`ReportGameplayEvent` |
+| `UMythNarrativeSubsystem` | 对话运行时 | `StartDialogue`、`Choose`、`StopDialogue` |
+| `UMythCheckpointSubsystem` | 激活检查点 | `ActivateCheckpoint` |
+| `UMythUIRouterSubsystem` | UI 层级/输入焦点/切图清理 | Widget 路由层 |
+| `UMythInputBindingSubsystem` | 玩家键位重绑定 | `RegisterMappableContext`、`Rebind`、`SaveBindings` |
+| `UMythAudioDirectorSubsystem` | 声音层级混音 | SoundMix/SoundClass |
+| `UMythCinematicSubsystem` | Sequencer 播放与跳过 | 演出启动/结束回调 |
 
-**Save/UI/ops**
-- `FMythSaveSnapshotV2`: profile+campaign+chapter world, migration schema.
-- `UMythChapterRegistrySubsystem`: AssetManager soft-resolve and validated transitions.
-- `UMythHUDPresenter`: subscribe to attribute and quest changes.
-- `UMythDataValidator`: uniqueness, soft references, quest graph, boss phases.
+## 四、接口交互规范
 
-## Event payload guidelines
+1. **命令**：有成功/失败结果的操作，如 `TryEquip`、`StartQuest`，走公开 API 并返回明确状态。
+2. **局部通知**：同一 Actor 或系统内部，采用 `Delegate`（如属性变化、死亡）。
+3. **跨域业务事实**：如“某 Boss 永久击败”通过稳定 ID、一次性收据和事件层传播。
+4. **可恢复流程**：存档、切图、动画、异步加载都要有失败/取消处理；避免只在“正常结束”时释放资源。
+5. **资产标识**：ChapterId / QuestId / BossId / ItemId / PersistentId 发布后应稳定，重命名需要迁移方案。
 
-Use ID, context, occurrence ID, optional source reference with safe lifetime, and timestamp if required.
-For `BossDefeated` production payload:
+## 五、入门调用示例（已有接口）
 
-```
-FMythBossDefeatedEvent {
-  FName BossId; FName ChapterId; FGuid OccurrenceId;
-  FName SourceQuestId; bool bPermanent;
+```cpp
+// 从一个持有 GameInstance 的 UObject / Actor 中取得服务。
+// 示例仅演示调用关系；实际需检查 GI 是否有效、资源是否已注册。
+UMythQuestSubsystem* Quests = GetGameInstance()->GetSubsystem<UMythQuestSubsystem>();
+if (Quests)
+{
+    Quests->StartQuest(TEXT("CH01_Q_Main_01"));
+    Quests->ReportGameplayEvent(TEXT("BossDefeated"), TEXT("CH01_Boss_01"), 1,
+                                TEXT("CH01_Boss_01_FirstClear"));
 }
 ```
 
-The starter's event intentionally has only two FName params. Upgrade it before multiple listeners/retries are used in the first fully playable quest. A delivery event is not the state of record; state must be explicitly committed once.
+这是**用法示意，不是无需验证就可以运行的完整代码片段**。实际 Boss 完成事件应使用项目自己的持久化事件链路，避免从多个位置手动重复报告。
 
-## Runtime startup contract (target)
+## 六、运行时初始化建议
 
-1. `UGameInstance` initializes Foundation subsystems, validates config and SaveData version.
-2. `UGameMode` creates player; character initializes ASC `InitAbilityActorInfo(Owner, Avatar)` and grants starter abilities.
-3. `ChapterRegistry` loads Chapter definition by PrimaryAssetId and its entry map.
-4. `WorldStateRegistry` materializes stable states after world Actors are spawned / streamed.
-5. `QuestRuntime` attaches to scoped event streams and restores active stages.
-6. `Player` restores checkpoint and inventory/attributes; UI receives snapshots.
-7. `NarrativeDirector` selects entry cutscene or gameplay; input mode moves to GameOnly.
-8. Save/Stream/Cinematic shutdown cancels timers, callbacks and pending operations, preventing double execution.
+启动 → GameInstance 各 Subsystem 初始化 → Bootstrap 注册 Catalog → 加载合法存档 → 解析章节和地图 → 创建 GameMode/Player/AI → 恢复世界与任务 → 挂接 UI/音频 → 解除输入锁定。
 
-The starter only implements #1 (save initialization), #2 and selected portions of #6.
+实际初始化顺序和事件订阅必须在 UE 中验证，尤其不能假设所有 GameInstanceSubsystem 的初始化顺序恰好等于头文件包含顺序。

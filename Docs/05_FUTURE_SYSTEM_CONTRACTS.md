@@ -1,127 +1,39 @@
-> 历史文档（v0.1）：新战斗代码请以 Docs/06_COMBAT_V02_DESIGN.md 和 Docs/07_EDITOR_SETUP_V02.md 为准。
+# 05｜跨章节扩展约定与设计边界
 
-# 05 — All future system interfaces (design contract; NOT code in starter)
+> 原文形成于 v0.1。这里改为**当前版本的扩展契约**，说明新增章节或复杂机制应该怎样接入；不要把设计建议误认为全部已经通过引擎验收。
 
-This document exists to prevent Chapter 01 from becoming a one-off hardcoded game while keeping the C++ slice minimal.
+## 输入 / 动作 / 动画
 
-## A. Input / Movement / Camera / Animation
+标准流程是 `Enhanced Input → ActionComponent → GAS Ability → Montage / Notify → Trace / GameplayEffect`。连招选择、输入缓冲、闪避取消与硬直清理属于 ActionComponent；具体 Montage 时序、Warp 目标和处决冲击通知在动画层配置。一个动作结束必须清理定时器、命中缓存、标签与异步通知绑定。
 
-Input pipeline: `Enhanced Input action -> ActionRequest {ActionId, InputTimestamp, Direction, TargetId} -> ActionPolicy -> GAS -> AnimationTask -> WindowEvents -> Result`.
+`UMythInputBindingSubsystem` 提供 `Rebind` / `SaveBindings`；必须在 IMC 提前给可重新映射的按键设置可识别名称，并验证不同设备上的冲突。
 
-Action priority table should be data-driven (`ActionPolicyDefinition`): dead > cinematic lock > execution > stagger > parry > dodge > attack > locomotion. These priorities are only defaults; exceptions are explicit override rules. Input buffer is 150–250ms target, tuned from real animations. Avoid buffering unlimited commands; expire stale actions. Action states stored as tags with explicit start/end ownership.
+## AI 与 Boss
 
-`UMythCameraDirector` takes a desired camera mode + interest targets and blends to a `FCameraPose` (world transform, FOV, offsets, shake) by priority, safely returning control after cinematic skip or failed lock-on. Every lock-on target requires visibility, range, world-validity and death invalidation.
+`AMythEnemyAIController` 管理感知、寻路和选招意图；StateTree Task / EQS 只决定“何时攻击、向哪里移动”，**技能命中与伤害仍由 GAS 战斗层完成**。`AMythCombatDirectorSubsystem` 控制同屏敌人攻击压力。
 
-Animation authority: locomotion may use Motion Matching; hit windows, i-frames, cancel windows are explicit gameplay timestamps or notify states. Anim montage does not own damage formula. Each dual-actor finisher defines warp targets and abort behavior.
+Boss 应复用战斗基类，用 `UMythBossPhaseDefinition` 定义阶段行为；击败记录永久持久化，Boss 特殊机制可以扩展但不得复制完整伤害系统。动画中断、离开战场、死亡和地图切换都必须有清理策略。
 
-## B. Combat and Enemy AI
+## 世界、交互和存档
 
-**Combat data schema**
+章节由 ChapterCatalog 注册，地图使用软资源引用。检查点和当前地图位置属于可恢复进度；宝箱、Boss、机关等永久状态使用稳定 ID 记录。World Partition/Data Layers 只负责加载或激活世界资产，不是剧情状态的唯一真相。
 
-```
-AttackDefinition {
-  AttackId, AbilityClass, MontageSoftRef, SectionId,
-  Windup, HitWindows[], CancelWindows[], Recovery,
-  Cost, Cooldown, DamageSpec, PoiseSpec, TargetingRule,
-  MotionWarpSpec, FeedbackProfile
-}
-HitWindow { WindowId, SocketPairs[], SweepRadius, MultiHitPolicy }
-ComboNode { NodeId, AttackId, InputTransitions[], Conditions[] }
-DamageSpec { SourceId, TargetId, AttackInstanceGuid, DamageTypes, RawValues, ImpactDirection }
-DamageResult { FinalHealthDamage, FinalPoiseDamage, WasDodged, WasBlocked, WasParried, WasFatal }
-```
+## 任务与叙事
 
-Do not use animation preview collisions as authoritative hits. Implement interpolated sweeps over sampled prior/current socket transforms; deduplicate per `AttackInstanceGuid + WindowId + TargetStableId`; apply via centralized ExecutionCalculation. Test at 30/60/120 FPS and under hitches.
+`UMythQuestDefinition` 是可编辑的任务定义，当前任务阶段和收据属于存档。业务动作应可重复投递而不重复结算；过场跳过后通过 NarrativeCommand 确定最终状态，避免把 Sequencer 当成任务数据库。
 
-**AI schema**
+## 道具、技能、商店
 
-```
-EnemyBrainDefinition {
-  PerceptionProfile, HomeAnchor, LeashRange, PatrolRoute,
-  StateTreeSoftRef, AbilityWeightRules[], AttackSlots,
-  ThreatPolicy, StuckRecoveryPolicy, ResetPolicy
-}
-```
+物品定义与实例分离：ItemId 对应通用配置，独立装备使用 GUID，货币、强化和背包归存档。购买、制作先检查库存与成本，再一起提交结果。技能树节点根据前置 ID 决定能否解锁，不依赖 UI 视觉布局。
 
-AI perception -> world-state context -> StateTree selects intent -> spatial query/EQS -> `TryActivateAbilities` -> receives ability completion or failure feedback -> updates context. Encounter Director can regulate simultaneous high-threat attacks, but must not force obviously artificial waiting. Enemy respawn policy separate from persistent kills.
+## UI、音频和可访问性
 
-## C. Boss phases and arenas
+UMG/ViewModel 订阅状态，不能直接修改业务数据。UI 层管理 HUD/Menu/Modal/Cinematic/Loading 的焦点。音频 Director 把战斗状态映射为 SoundMix 或 SoundClass；字幕、本地化、手柄与无障碍需要独立的内容资产与人工验证。
 
-```
-BossDefinition {
-  BossId, PhaseGraph[], ArenaProfile, RecoveryPolicy,
-  PermanentDefeatPolicy, CinematicMilestones
-}
-BossPhase {
-  PhaseId, EnterConditions[], TransitionPriority,
-  AbilitySetSoftRef, BehaviorProfile, ArenaActions[],
-  EntrySequence, ExitCleanupActions, MaxTransitionSeconds
-}
-```
+## 错误处理与扩展守则
 
-Transitions are guarded transactions: request phase -> mark transition pending -> finish/cancel current attack -> apply protection rule -> fire one presentation event -> enter new phase -> release lock. Timeout/skip must call the same cleanup path. Boss defeat writes a unique durable flag and resolves rewards exactly once. A boss fight stopped by reload must obey authored policy (typically reset to start of encounter).
+任何异步流程都必须有明确 RequestId、超时/取消路径、失败结果和最终清理。新增系统先提供公共 API 和测试，再扩展 Blueprint、Data Asset、编辑器校验。禁止第一章硬引用未来章节的 Actor；稳定 ID 改名需要迁移表。
 
-## D. World / chapters / streaming
+## 状态说明
 
-Chapter definitions are primary assets and must declare entry maps, starting checkpoint, unlock predicates, data registration and soft references to dependencies. Every persistent object implements:
-
-```
-IMythPersistentObject {
-  GetPersistentId(): Guid;
-  GetPersistencePolicy(): enum;
-  CaptureState(): FInstancedStruct;
-  RestoreState(FInstancedStruct);
-}
-```
-
-`WorldStateSubsystem` retains per-object state across actor unload/reload, and `ChapterRegistry` retains across travel. State restore occurs after dependencies spawned but before gameplay interactions open. Editor assigns stable GUIDs, validates uniqueness in loaded cells and entire cooked content set. `World Partition Data Layers` manage activation, not the source of truth for story flags.
-
-`CheckpointSnapshot` and `CampaignSaveSnapshot` are separate. On death restore player spawn and resources; respawn normal encounters; never recreate opened chests or permanently defeated Bosses.
-
-## E. Quest / dialogue / cinematics
-
-```
-QuestDefinition {
-  QuestId, ChapterId, PrerequisiteConditionGraph,
-  Stages[], Rewards[], FailPolicy, ExclusiveQuestGroups[]
-}
-QuestStage {
-  StageId, OnEnterActions[], ObjectiveRules[],
-  CompletionRule, FailureRule, OnCompleteActions[],
-  NextStageEdges[]
-}
-NarrativeAction { ActionId, Payload, IdempotenceKey, Precondition }
-```
-
-Condition graph uses And/Or/Not plus typed conditions (`EventCount`, `BossDefeated`, `ItemOwned`, `StoryFlag`, `LocationReached`, etc.). Avoid embedded arbitrary Blueprint logic for primary progression. Stage actions are replay-safe and carry unique idempotence keys. Branches and stage identifiers persist to saves; a schema migration maps old IDs. During cinematic skip, apply completion actions through the same path as an uninterrupted cutscene.
-
-**Test branches:** sequential, alternative solution, optional objective, exclusive fail, reload before final action, cutscene skipped, Boss kill before quest accepted, duplicate event delivery.
-
-## F. RPG inventory / equipment / skills / economy
-
-Data models:
-
-```
-ItemDefinition { ItemId, Type, StackLimit, Display, Tags, UseAbilityId, SellRules }
-ItemStack { ItemId, Count }
-ItemInstance { InstanceGuid, ItemId, EnhancementLevel, Affixes, Durability }
-EquipmentSlot { SlotId, ItemInstanceGuid }
-SkillNode { SkillId, Prerequisites, Costs, GrantsAbilityOrEffect }
-LootTable { Entries[], Weight, EligibilityConditions }
-```
-
-All mutations go through an `InventoryTransactionService` with preconditions and `commit` result. Purchases and crafting must atomically deduct and grant. UI is a subscriber, never modifies data arrays directly. Define soft data references, localized names, item type validation, and stable migration IDs. Work with a single authoritative inventory on the player's save slot.
-
-## G. UI, audio, localization and accessibility
-
-UMG/Common UI view-models observe gameplay data via delegates and snapshots. UI layers: HUD, Menu, Modal, Cinematic, Loading, Debug; each owns focus policy and input mapping. Persistent user settings separate from campaign state. Accessibility includes scalable subtitles, camera shake intensity, hold/toggle and input remap, contrast, UI navigation, and color-blind-friendly indicators. Dialogue stores localization keys, VO references and timing data independently.
-
-Audio Director subscribes to gameplay facts and transitions between exploration/alert/Boss/music-phase states. Sound spatialization, concurrency, submixes and haptics use authored feedback profiles rather than hardcoded sound calls in abilities.
-
-## H. Logging / testing / build / release
-
-Every gameplay domain has typed logs and scoped debug overlays. Editor validation catches ID duplicates, missing soft assets, invalid quest references, circular dependency graphs, unreachable Boss phases, missing localization and save migration gaps. Automation tests test pure rules and state transitions, functional tests run maps, Gauntlet packages/builds and executes smoke suites. Profile packaged builds using Unreal Insights; keep P95/P99 frame-times and memory budgets. Patch content uses versioned manifests and preserves old save IDs.
-
-## I. Domain error handling and recovery
-
-Define non-success result codes (`InvalidState`, `MissingAsset`, `InsufficientResource`, `AlreadyCompleted`, `SchemaMismatch`, `SaveCommitFailed`). Every asynchronous operation (travel, stream, cinematic, save) has request ID, cancellation/timeout policy and a clear final state. No game progression should depend on a one-time cosmetic callback that may never arrive.
+仓库已经包含多数上述框架的**源码入口**，但没有真实动画、StateTree、UMG 和地图资产的集成证明，也没有通过 UBT/UHT/PIE/Shipping 验收。详见 [17](17_FOUNDATION_V10.md)。

@@ -1,27 +1,35 @@
-# 04 — Save hardening and shipping checklist
+# 04｜存档设计、故障恢复与发行验收
 
-The starter uses **synchronous, single-slot `USaveGame`** for simple testing. This is deliberately **not production-safe**.
+## 为什么这部分重要
 
-## Upgrade plan
+长篇 ARPG 会在几十小时里积累物品、技能、任务、世界变化和 Boss 击败记录。存档必须避免“任务完成而奖励没到账”等半提交状态。单靠保存角色位置远远不够。
 
-1. Create immutable `FSaveSnapshotV2` on game thread at safe frame boundaries. Include Profile/Campaign/ChapterWorld state, stable GUIDs, schema/build version.
-2. Serialize snapshot off-thread; use temp file, flush and atomic rename when platform allows, retain last known-good backup.
-3. Separate checkpoint respawn policy from persistence policy (mob reset versus permanent quest/Boss/chest flags).
-4. Use stable IDs, not path names or transient pointers. Build `UWorldStateRegistry` that re-applies per-actor state after streaming.
-5. Use ID migration tables + schema migration tests for patches. Test game exit during save and corrupted file fallback.
-6. Ensure item/reward changes and related quest completion are transactionally consistent (exactly-once semantics).
-7. Validate saved map/ChapterId before applying transform. If invalid, fall back to a safe checkpoint.
-8. File slot UI, manual/auto save policy, backup recovery and platform-specific store integration.
+## 当前候选实现
 
-## Test matrix
+- `UMythSaveSubsystem` 维护 `FMythCampaignSnapshot`，提供 `GetSnapshot`、`SetSnapshot`、`RequestAsyncSave`、`ReloadFromDisk` 等入口。
+- `FMythSaveStorage` 使用交替的 A/B 文件保存、代际编号和 CRC32 校验，以便最新文件损坏时尝试读取较旧一代。
+- 兼容旧 `.sav` 加载和保存结构迁移；数据修改后由受控逻辑统一触发快照提交。
+- 持久业务事件使用 Outbox（待投递队列）与稳定收据，**至多只能承诺重复投递可被消费者去重**，不能宣称全局“刚好执行一次”。
 
-- Save while enemy dies; save during cutscene skip; save at chapter boundary; save after Boss reward.
-- Crash/restart before completion and after commit.
-- Load old versions of each schema generation.
-- Stream out/in opened chest, defeated elite and NPC progress.
-- Re-enter boss arena after victory; abort boss arena mid-transition.
-- 50+ hours mock accumulated state, memory soak, packaged Shipping build.
+## 需要怎么用
 
-## Performance budgets
+1. **规则修改**：调用 Inventory、Quest、Narrative 等领域 API，而不是 UI 直接覆盖保存数组。
+2. **保存时机**：检查点和奖励结算等安全时刻请求保存；必要时调用 `FlushToDisk`。
+3. **恢复步骤**：读档并校验 → 确定章节与检查点 → 恢复世界标志 → 恢复角色与任务 → 再开放交互。
+4. **Boss 完成**：永久击败标志、发奖收据和待投递事件应在同一份状态更新里达成一致。
+5. **WorldPartition/地图重载**：世界对象不能持有跨地图的 Actor 引用，需用编辑器赋予的稳定 PersistentId 查找旧状态。
 
-60 fps corresponds to ~16.67 ms per frame; thread/GPU budgets must be profiled separately on actual target hardware using packaged builds and Unreal Insights. Record P50/P95/P99 frame times, load hitches, max memory, AI update count, ability count and active world actors. No performance figure is claimed for this unbuilt starter.
+## 必测失败情景
+
+- 保存前后强制结束游戏；保存过程中断电；A/B 两份都损坏。
+- 任务完成、播放过场和 Boss 死亡三者同时发生。
+- 章节切图时崩溃，重启后进入合法检查点而非无效坐标。
+- 旧版本数据加载、新旧字段共存及稳定 ID 重命名迁移。
+- 已领取奖励重复触发信号、重复读档和重复进入战场。
+- 50 小时模拟进度、存档膨胀、单机多槽、平台保存路径与云端冲突。
+
+## 发行阻断项
+
+目前尚未完成真实文件系统故障注入、云端/平台存档适配、完整多槽 UI、Shipping 测试。CRC32 只能检测意外损坏，不能防止恶意修改。跨平台原子替换行为要按目标操作系统验证。
+
+目标 60FPS 的整帧预算约 16.67ms；用 Unreal Insights 分别记录 Game Thread、Render Thread、GPU、加载卡顿、P95/P99 帧时间和最大内存。**没有测量就不应宣布达标。**

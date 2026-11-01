@@ -1,65 +1,35 @@
-> 历史文档（v0.1）：新战斗代码请以 Docs/06_COMBAT_V02_DESIGN.md 和 Docs/07_EDITOR_SETUP_V02.md 为准。
+# 03｜开发顺序、交付门槛与质量要求
 
-# 03 — Implementation order, PR breakdown and Definition of Done
+> 本文列的是“怎样把代码变成能玩的商业级游戏”，不是把计划项当作已经完成。
 
-## PR-001: foundation (starter source included)
+## 阶段 1：通用基础与战斗切片（当前已有源码）
 
-- Create modules + foundational save/event/chapter data classes.
-- Build Windows Development Editor and cook a blank map.
-- **DoD:** No compile warning treated as error, editor loads, test commandlets run.
+目标：建立 Foundation/Gameplay/Systems/Editor 模块；打通玩家、敌人、GAS、连招、命中、闪避、Boss 阶段和存档。**目前已有候选源码，未做 UE 引擎编译/运行验收。**
 
-## PR-002: GAS combat slice (starter source included, editor verification pending)
+通过标准：Editor 可编译和加载；攻击扣血准确；死亡与重生状态干净；同一次攻击不重复命中；基本自动测试通过。
 
-- Character ASC, attributes, melee and dodge abilities, Damage GameplayEffect.
-- Input, camera, debug mesh, enemy AI, Boss phase/death, minimal save.
-- **DoD:** Attack kills enemy, dodge avoids damage, Boss phases and permanent defeat survive restart.
+## 阶段 2：交叉系统集成
 
-## PR-003: make combat production-safe
+让一个测试关卡串起：NPC → 领取任务 → 遭遇战 → Boss → 获得道具 → 开门 → 激活检查点 → 保存 → 重启继续。
 
-- Implement `ActionPolicy`, animation montage abilities, AnimNotify hit windows, multi-socket temporal sweeps, duplicate-hit prevention.
-- Add per-hit damage context, precision guard, stamina cost, poise, cancel priorities.
-- **DoD:** deterministic 3-hit combo under varying FPS and cancellation scenarios; automated attack tests pass.
+重点验证：正确的任务事件收据、剧情重复投递去重、动画跳过后恢复输入、AI 解除委托与世界卸载、存档快照数据一致。**不需要任何正式美术资源即可先进行灰盒集成，但需要在 UE 中真正运行。**
 
-## PR-004: perception + StateTree + Boss phase transitions
+## 阶段 3：内容制作（第一章）
 
-- AI perception vision/hearing/aggro memory, navigation failure handling, data-driven ability choice.
-- Boss phase runtime waits for safe transition, cancels/ends prior ability, triggers unique cinematic, recovers after skip.
-- **DoD:** Boss can repeatedly be entered, defeated, abandoned and restored without softlocks.
+依据已验证的通用接口，制作地图、人物、招式 Montage、StateTree/EQS 资产、任务/对话 Data Asset、HUD 和 Sequencer 等。每种新玩法先判断能否纯配置；只有真正新增机制时改 C++。
 
-## PR-005: world + interaction + checkpoint
+## 阶段 4：发行工程
 
-- Build world persistable actor GUID, local region registry, streaming load/unload callbacks.
-- Interactable interface; doors, pickup, chest, checkpoint, region transitions, encounter respawn policy.
-- **DoD:** opened chest remains opened after unload/reload and game reboot; normal mobs respawn under policy.
+执行：自动化测试地图、UBT/UHT 编译、打包、旧存档迁移、坏档回退、跨图失败恢复、60FPS 目标平台性能、内存与长时间运行、无障碍、手柄和本地化回归。
 
-## PR-006: quest + narrative and first mainline loop
+## Pull Request 建议
 
-- Quest stage conditions/actions, typed event registry, idempotent rewards and world flags.
-- Dialogue, cinematic state machine and mandatory skip finalizer.
-- **DoD:** Start -> NPC -> kill Boss -> open gate -> chapter complete, uninterrupted or after any save/reload.
+- 每个 PR 只做一个可验证领域（如“处决中断清理”，而不是“一次修改全部系统”）。
+- 同时更新文档与验收脚本。
+- 不得随意重命名稳定 ItemId/QuestId/ChapterId；改动需附迁移方案。
+- 每个新模块应有明确使用例子、故障模式和自动化测试入口。
+- 不允许将结构检查标为“已通过 Unreal 编译”。
 
-## PR-007: RPG growth and UI
+## 当前判断
 
-- Item definition vs item instance, transactional inventory operations, equipment, skill DAG, consumables and loot.
-- HUD, pause, map, subtitles, remapping, settings, gamepad UI focus.
-- **DoD:** defeat enemies, earn resources, grow character, reload and use resulting build.
-
-## PR-008: Chapter 01 content and release
-
-- Design five connected regions, two bosses, sidequests, cutscenes, dialogues, tuning.
-- Async + versioned save with backup, failure handling, content validation commandlets.
-- Full automated packaged run, stability soak, profile against signed-off target hardware.
-- **DoD:** a new player completes Chapter 01 in a Shipping build with no blocking bugs.
-
-## Non-negotiable engineering constraints
-
-- No gameplay logic in Level Blueprint except temporary debug hookups.
-- No persistent Actor pointers in save slots.
-- No hardcoded future chapter asset paths in Chapter 01.
-- All rewards, boss deaths, quest-stage side effects idempotent.
-- Every new system must have at least one Debug endpoint and one automated test.
-- Changes to IDs require a migration manifest and backwards-compatibility test.
-
-## First concrete milestone acceptance
-
-Check all of: compile, open map, move/look, fight enemy, dodge invul, AI pursuit, boss 2 transitions, boss persistence, manual player save, unit-test result. This is a vertical slice; do not confuse it with a completed commercial chapter.
+核心通用功能表面已经广泛覆盖，但仍有真实 UE 编译与行为测试、资产装配和质量验证工作。最新边界见 [17](17_FOUNDATION_V10.md)；具体测试条目见 [08](08_INTEGRATION_QA.md)。

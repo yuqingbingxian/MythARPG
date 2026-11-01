@@ -1,49 +1,22 @@
-> 历史文档（v0.1）：新战斗代码请以 Docs/06_COMBAT_V02_DESIGN.md 和 Docs/07_EDITOR_SETUP_V02.md 为准。
+# 02｜历史 v0.1 编辑器启动说明（中文）
 
-# 02 — Editor setup and smoke-test
+> **历史文档，保留用于追溯早期版本。** 当前版本优先使用 [07：v0.2 战斗编辑器操作](07_EDITOR_SETUP_V02.md)、[README：当前工程使用方法](../README.md) 与 [17：v1.0 状态](17_FOUNDATION_V10.md)。
 
-This is a **C++ starter**, not a precompiled, playable game. You must create native Unreal `.uasset` resources in Editor.
+## 目标
 
-## 1. Compile
+v0.1 只是让玩家和敌人在空白地图中完成移动、一次攻击、闪避、Boss 三段血量变化与简单手动保存的原型。不能把下文当作 v1.0 的全部功能清单。
 
-Open `MythARPG.uproject` with UE 5.8; build Development Editor using installed matching MSVC. If building from Visual Studio, generate project files and build `MythARPGEditor Win64 Development`. The source has not undergone UnrealHeaderTool/UnrealBuildTool verification in this environment.
+## 搭建顺序
 
-## 2. Content path
+1. 在 Windows 以适配 UE5.8 的工具链编译 `MythARPGEditor`；代码未在本交付环境经过 UBT/UHT 检查。
+2. 在 `/Game/Core/Input` 中建立 `IA_Move`、`IA_Look`、`IA_Attack`、`IA_Dodge`、`IA_Save` 和 `IMC_Player`。
+3. 建立 `BP_Player`（`AMythPlayerCharacter` 子类），配置输入资源和调试模型；建立 `BP_GameMode` 并指向该玩家角色。
+4. 在测试地图放 `PlayerStart`、地面和 `NavMeshBoundsVolume`，按 P 查看寻路网格。
+5. 建立 `BP_Enemy`（`AMythEnemyCharacter`）与 `BP_Boss`（`AMythBossCharacter`），设置各自 `UMythCombatantDefinition` 和稳定 BossId。
+6. 在 PIE 中按序验证移动、攻击、敌人追击、Boss 转阶段、死亡、F5 保存/读档。
 
-Create folders: `/Game/Core/Input`, `/Game/Core/Blueprints`, `/Game/Chapters/Chapter01/Maps`, `/Game/Chapters/Chapter01/Characters`, `/Game/Chapters/Chapter01/Data`.
+v0.1 的攻击曾采用简单前方 Sphere 采样；**后续版本已经引入 ComboGraph、WeaponTrace、Notify、格挡/招架与动画协调**。如今请使用最新代码与 [06 动作战斗设计](06_COMBAT_V02_DESIGN.md)。
 
-Create map `L_CH01_CombatSandbox`, ground, 1 PlayerStart and large NavMeshBoundsVolume covering arena. Press `P` to ensure NavMesh is green. Place 2 enemies, one boss with unique `BossId`.
+## 历史限制
 
-## 3. Enhanced Input assets
-
-- `IA_Move`: Axis2D, W=(0,+1), S=(0,-1), A=(-1,0), D=(+1,0) using the correct UE mapping modifiers (Negate / Swizzle) in the IMC.
-- `IA_Look`: Axis2D mouse XY. If using separate mouse axes, use modifiers to map to X and Y.
-- `IA_Attack`: Bool left click; `IA_Dodge`: Bool Space; `IA_Save`: Bool F5.
-- `IMC_Player`: mapping context containing all the above.
-- `BP_Player` (inherits `AMythPlayerCharacter`): assign `DefaultInputContext`, `MoveAction`, `LookAction`, `AttackAction`, `DodgeAction`, `SaveAction` in Class Defaults.
-- `BP_GameMode`: inherits `AMythGameMode`, override DefaultPawnClass to `BP_Player`. Set in map World Settings.
-
-## 4. Enemies
-
-Create `DA_Enemy` with class `MythCombatantDefinition` (e.g. HP 90, damage 12, Defense 5, Aggro 1100, Attack 190). Create `BP_Enemy` from `AMythEnemyCharacter`, assign its `CombatantDefinition` and place it.
-
-Create `DA_Boss` with HP 300, damage 25, Defense 15, ranges as desired. Create `BP_Boss` from `AMythBossCharacter`, assign CombatantDefinition, place once, set actor instance BossId `CH01_Boss_01`. Phase 1/2/3 will change by health ratio; `OnPhaseEntered` is a Blueprint event where you can log/play placeholder feedback.
-
-## 5. Smoke checks
-
-1. PIE: WASD movement, camera mouse movement, left mouse attack, Space dodge.
-2. Enemy approaches within ~1100 cm; attacks when within its configured range.
-3. Attack enemy; damage reduces HP via GAS GameplayEffect and death stops AI.
-4. Boss phase event fires at <=66% and <=33% HP (with >0 health).
-5. Boss defeat writes boss ID; restart game and boss should despawn on BeginPlay.
-6. Move player elsewhere, press F5; restart game and confirm position/HP load.
-7. In Automation window run `MythARPG.Combat.DamageFormula`.
-
-## 6. Known prototype caveats
-
-- Melee hits instantly at the start of the ability and in a *forward fixed sphere*. Animation hit windows are a subsequent milestone.
-- Dodge launch velocity changes movement; not a fully authored root-motion dodge.
-- No lock-on, hit reactions, respawned enemies, inventory, quest or UI yet.
-- The saved transform only makes sense in this same map; deleting/changing the arena can place the pawn in invalid geometry.
-- NPC line of sight is not considered; a target in range behind walls may trigger pursuit.
-- This source package has not been built with UBT; use your actual Editor to verify and resolve patch-level API changes.
+早期单槽同步存档、无锁定、无任务/背包、无 StateTree 等都属于该版本的历史事实，不代表最新候选源码的全部能力。当前仓库仍没有正式游戏资产和已验证的 UE 运行结果。
