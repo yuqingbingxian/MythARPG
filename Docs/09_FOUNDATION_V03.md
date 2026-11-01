@@ -11,7 +11,9 @@
 - Inventory (`ItemCatalog`, unique GUID equipment instances, stacking, currency),
   skill progression, skill DAG validation, recipes, transactional shop purchase.
 - Quest (`QuestCatalog`, ordered stages, objective counters, matching gameplay
-  events, completion flag). Boss defeated events are bridged to quest objectives.
+  events, completion flag). Generic `FMythGameplaySignal` bridges enemy death,
+  Boss defeat and dialogue completion into quest objectives. Reward definitions
+  stage items/currency/XP/flags in the same snapshot as quest completion.
 - Dialogue nodes / conditional choices / durable choice world flags.
 - Interactable contract, raycast interaction component, persistent world object.
 - Checkpoints and screen flow/audio orchestration services.
@@ -74,8 +76,9 @@ leave their feature disabled rather than crash. The above paths are examples,
    Replace with an Asset Manager prefetch/async loading contract once asset budgets
    are known. Do not call them mid-frame in heavy content loops.
 5. Quests presently use ordered stages + objective counts, not arbitrary
-   condition graph branching or a full reward/action command executor.
-   Add reward orchestration and route all gameplay signals into a typed broker.
+   condition graph branching or a full general-purpose action command executor.
+   The new typed signal broker and basic atomic completion rewards still require
+   full in-engine validation, failure injection and content-authoring safeguards.
 6. Boss phase cues are Blueprint implementable hooks; phase choreography,
    cancel windows, invulnerability and arena scene ownership still need work.
 7. AI combat coordinator is implemented, but the legacy enemy controller still

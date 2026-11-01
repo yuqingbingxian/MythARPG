@@ -22,6 +22,7 @@ struct FMythQuestStage
     UPROPERTY(EditAnywhere,BlueprintReadOnly) FName NextStageId=NAME_None; // None = quest complete.
     UPROPERTY(EditAnywhere,BlueprintReadOnly) FName WorldFlagOnCompletion=NAME_None;
 };
+class UMythRewardDefinition;
 UCLASS(BlueprintType)
 class MYTHSYSTEMSRUNTIME_API UMythQuestDefinition : public UPrimaryDataAsset
 {
@@ -31,6 +32,7 @@ public:
     UPROPERTY(EditDefaultsOnly,BlueprintReadOnly) FName ChapterId=NAME_None;
     UPROPERTY(EditDefaultsOnly,BlueprintReadOnly) FName InitialStageId=NAME_None;
     UPROPERTY(EditDefaultsOnly,BlueprintReadOnly) TArray<FMythQuestStage> Stages;
+    UPROPERTY(EditDefaultsOnly,BlueprintReadOnly) TSoftObjectPtr<UMythRewardDefinition> CompletionReward;
     UPROPERTY(EditDefaultsOnly,BlueprintReadOnly) TArray<FName> RequiredWorldFlags;
     virtual FPrimaryAssetId GetPrimaryAssetId()const override
     {return FPrimaryAssetId(TEXT("Quest"),QuestId.IsNone()?GetFName():QuestId);}

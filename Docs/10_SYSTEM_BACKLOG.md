@@ -14,7 +14,7 @@ Status labels: `source` = implemented source but uncompiled, `contract` = API on
 | Inventory/equip/currency | source v0.3 | Equipment attribute effects, item use, UI, validation |
 | Crafting/shop | source v0.3 | Selling, restock, pricing modifiers, rollback tests |
 | Progression/skill DAG | source v0.3 | Skill grant-to-GAS and refund rules |
-| Quests and narrative | source v0.3 | Branching quest graph, typed event broker, reward command |
+| Quests and narrative | source v0.3 | Branching quest graph, event error recovery, broader command executor |
 | Interact and checkpoint | source v0.3 | Multi-option targeting, exact spawn registry |
 | Audio/gameflow | source v0.3 | Mix states, cinematic input/Sequencer integration |
 | UI/HUD/settings | contract | UI routing, HUD ViewModels, persistent settings |

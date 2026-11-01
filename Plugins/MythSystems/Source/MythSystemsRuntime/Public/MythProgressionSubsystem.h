@@ -1,6 +1,7 @@
 #pragma once
 #include "CoreMinimal.h"
 #include "Subsystems/GameInstanceSubsystem.h"
+#include "MythCampaignTypes.h"
 #include "Engine/DataAsset.h"
 #include "MythProgressionSubsystem.generated.h"
 
@@ -22,6 +23,7 @@ public:
     UFUNCTION(BlueprintCallable) void RegisterRules(UMythProgressionRules* InRules);
     UFUNCTION(BlueprintCallable) void RegisterSkillTree(UMythSkillTreeDefinition* Tree);
     UFUNCTION(BlueprintCallable) bool AwardExperience(int32 Amount);
+    bool TryAwardToSnapshot(FMythCampaignSnapshot& Snapshot,int32 Amount)const;
     UFUNCTION(BlueprintCallable) bool UnlockSkill(FName SkillId,int32 Cost=1);
     UFUNCTION(BlueprintPure) bool IsSkillUnlocked(FName SkillId) const;
 private:

@@ -3,6 +3,7 @@
 #include "Subsystems/GameInstanceSubsystem.h"
 #include "MythQuestSubsystem.generated.h"
 class UMythQuestCatalog;
+struct FMythGameplaySignal;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_TwoParams(FMythQuestTransition,FName,QuestId,FName,StageId);
 
 /** Generic ordered stage executor; stage completion and world flag are one snapshot mutation. */
@@ -21,5 +22,5 @@ public:
     UFUNCTION(BlueprintPure) FName GetCurrentStage(FName QuestId) const;
 private:
     UPROPERTY(Transient) TObjectPtr<UMythQuestCatalog> QuestCatalog;
-    void HandleBossDefeated(FName BossId,FName ChapterId);
+    void HandleSignal(const FMythGameplaySignal& Signal);
 };

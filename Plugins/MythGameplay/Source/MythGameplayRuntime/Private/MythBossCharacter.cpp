@@ -7,6 +7,7 @@
 AMythBossCharacter::AMythBossCharacter()
 {
     DefaultMeleeDamage = 30.f;
+    bReportGenericEnemyDeath=false;
 }
 
 void AMythBossCharacter::BeginPlay()
@@ -56,4 +57,7 @@ void AMythBossCharacter::HandleDeath()
     {
         Events->PublishBossDefeated(BossId, ChapterId);
     }
+    // Commit Boss defeat, quest advancement and all quest rewards in one snapshot.
+    if (UMythSaveSubsystem* Save=GetGameInstance()->GetSubsystem<UMythSaveSubsystem>())
+        Save->FlushToDisk();
 }

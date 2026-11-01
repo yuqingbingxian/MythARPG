@@ -1,5 +1,8 @@
 #include "MythQuestSubsystem.h"
 #include "MythQuestDefinition.h"
+#include "MythRewardDefinition.h"
+#include "MythRewardSubsystem.h"
+#include "MythInventorySubsystem.h"
 #include "MythSaveSubsystem.h"
 #include "MythEventSubsystem.h"
 #include "Engine/GameInstance.h"
@@ -8,17 +11,17 @@ void UMythQuestSubsystem::Initialize(FSubsystemCollectionBase& Collection)
     Collection.InitializeDependency<UMythEventSubsystem>();
     Super::Initialize(Collection);
     if(UMythEventSubsystem* Events=GetGameInstance()->GetSubsystem<UMythEventSubsystem>())
-        Events->OnBossDefeated.AddUObject(this,&UMythQuestSubsystem::HandleBossDefeated);
+        Events->OnSignal.AddUObject(this,&UMythQuestSubsystem::HandleSignal);
 }
 void UMythQuestSubsystem::Deinitialize()
 {
     if(UMythEventSubsystem* Events=GetGameInstance()->GetSubsystem<UMythEventSubsystem>())
-        Events->OnBossDefeated.RemoveAll(this);
+        Events->OnSignal.RemoveAll(this);
     Super::Deinitialize();
 }
-void UMythQuestSubsystem::HandleBossDefeated(FName BossId,FName ChapterId)
+void UMythQuestSubsystem::HandleSignal(const FMythGameplaySignal& Signal)
 {
-    ReportGameplayEvent(TEXT("BossDefeated"),BossId,1);
+    ReportGameplayEvent(Signal.EventName,Signal.TargetId,Signal.Count);
 }
 void UMythQuestSubsystem::RegisterCatalog(UMythQuestCatalog* Catalog){QuestCatalog=Catalog;}
 FName UMythQuestSubsystem::GetCurrentStage(FName QuestId) const
@@ -54,6 +57,7 @@ bool UMythQuestSubsystem::ReportGameplayEvent(FName EventName,FName TargetId,int
     FMythCampaignSnapshot S=Save->GetSnapshot();
     TArray<TPair<FName,FName>> Advances;
     TArray<TPair<FName,FName>> Completions;
+    TArray<const UMythRewardDefinition*> PendingRewards;
     bool bModified=false;
     for(FMythQuestRecord& R:S.Quests)
     {
@@ -79,6 +83,12 @@ bool UMythQuestSubsystem::ReportGameplayEvent(FName EventName,FName TargetId,int
         R.ObjectiveCounts.Reset();
         if(Stage->NextStageId.IsNone())
         {
+            if(!Def->CompletionReward.IsNull())
+            {
+                const UMythRewardDefinition* Reward=Def->CompletionReward.LoadSynchronous();
+                if(!Reward)return false;
+                PendingRewards.Add(Reward);
+            }
             R.Status=2;Completions.Add(TPair<FName,FName>(R.QuestId,R.StageId));
         }
         else
@@ -87,7 +97,17 @@ bool UMythQuestSubsystem::ReportGameplayEvent(FName EventName,FName TargetId,int
             Advances.Add(TPair<FName,FName>(R.QuestId,R.StageId));
         }
     }
-    if(!bModified || !Save->SetSnapshot(S))return false;
+    if(!bModified)return false;
+    if(!PendingRewards.IsEmpty())
+    {
+        UMythRewardSubsystem* RewardSystem=GetGameInstance()->GetSubsystem<UMythRewardSubsystem>();
+        if(!RewardSystem)return false;
+        for(const UMythRewardDefinition* Reward:PendingRewards)
+            if(!RewardSystem->TryGrantToSnapshot(S,Reward))return false;
+    }
+    if(!Save->SetSnapshot(S))return false;
+    if(!PendingRewards.IsEmpty())
+        if(UMythInventorySubsystem* Inv=GetGameInstance()->GetSubsystem<UMythInventorySubsystem>())Inv->NotifyInventoryChanged();
     for(const auto& Pair:Advances)OnQuestAdvanced.Broadcast(Pair.Key,Pair.Value);
     for(const auto& Pair:Completions)OnQuestCompleted.Broadcast(Pair.Key,Pair.Value);
     return true;

@@ -1,6 +1,7 @@
 #include "MythNarrativeSubsystem.h"
 #include "MythDialogueDefinition.h"
 #include "MythSaveSubsystem.h"
+#include "MythEventSubsystem.h"
 #include "Engine/GameInstance.h"
 FName UMythNarrativeSubsystem::CurrentDialogueId()const
 {return ActiveDialogue?ActiveDialogue->DialogueId:NAME_None;}
@@ -33,7 +34,17 @@ bool UMythNarrativeSubsystem::Choose(int32 Index)
         S.WorldValues.Add(Choice.SetWorldFlag,1);
         if(!Save->SetSnapshot(S))return false;
     }
-    if(Choice.NextNodeId.IsNone()){StopDialogue();return true;}
+    if(Choice.NextNodeId.IsNone())
+    {
+        const FName CompletedId=CurrentDialogueId();
+        StopDialogue();
+        if(UMythEventSubsystem* Events=GetGameInstance()->GetSubsystem<UMythEventSubsystem>())
+        {
+            FMythGameplaySignal Signal;Signal.EventName=TEXT("DialogueCompleted");Signal.TargetId=CompletedId;
+            Events->PublishSignal(Signal);
+        }
+        return true;
+    }
     ActiveNodeId=Choice.NextNodeId;
     OnNodeEntered.Broadcast(CurrentDialogueId(),ActiveNodeId);
     return true;

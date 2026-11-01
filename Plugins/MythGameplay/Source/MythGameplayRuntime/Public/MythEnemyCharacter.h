@@ -12,5 +12,6 @@ public:
     float GetAggroRange() const;
     float GetAttackRange() const;
 protected:
+    UPROPERTY(EditDefaultsOnly,Category="AI") bool bReportGenericEnemyDeath=true;
     virtual void HandleDeath() override;
 };

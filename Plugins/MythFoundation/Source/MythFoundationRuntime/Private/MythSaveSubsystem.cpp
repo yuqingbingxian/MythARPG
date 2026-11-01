@@ -54,11 +54,28 @@ FMythCampaignSnapshot UMythSaveSubsystem::GetSnapshot() const
 
 bool UMythSaveSubsystem::ValidateSnapshot(const FMythCampaignSnapshot& S) const
 {
-    if (S.PlayerLevel < 1 || S.Experience < 0 || S.SkillPoints < 0 || !FMath::IsFinite(S.PlayerHealth) || S.PlayerHealth < 0.f) return false;
+    if (S.PlayerLevel < 1 || S.Experience < 0 || S.SkillPoints < 0 ||
+        !FMath::IsFinite(S.PlayerHealth) || S.PlayerHealth < 0.f || S.PlayerTransform.ContainsNaN()) return false;
+    TSet<FGuid> UniqueInstances;
     for (const FMythItemStack& Item : S.Inventory)
+    {
         if (Item.ItemId.IsNone() || Item.Count < 1 || Item.UpgradeLevel < 0) return false;
+        if (Item.InstanceId.IsValid())
+        {
+            if (Item.Count!=1 || UniqueInstances.Contains(Item.InstanceId)) return false;
+            UniqueInstances.Add(Item.InstanceId);
+        }
+    }
+    for (const auto& Slot : S.EquippedSlots)
+        if (Slot.Key.IsNone() || !UniqueInstances.Contains(Slot.Value))return false;
     for (const auto& Money : S.Wallet)
         if (Money.Key.IsNone() || Money.Value < 0) return false;
+    TSet<FName> QuestIds;
+    for (const FMythQuestRecord& Quest : S.Quests)
+    {
+        if (Quest.QuestId.IsNone() || QuestIds.Contains(Quest.QuestId))return false;
+        QuestIds.Add(Quest.QuestId);
+    }
     return true;
 }
 
@@ -122,7 +139,7 @@ bool UMythSaveSubsystem::RecordBossDefeat(FName BossId)
     FMythCampaignSnapshot S = GetSnapshot();
     if (S.DefeatedBossIds.Contains(BossId)) return true;
     S.DefeatedBossIds.Add(BossId);
-    return SetSnapshot(S,true);
+    return SetSnapshot(S);
 }
 
 bool UMythSaveSubsystem::IsBossDefeated(FName BossId) const
