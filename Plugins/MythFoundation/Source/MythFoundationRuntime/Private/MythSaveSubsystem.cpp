@@ -1,5 +1,8 @@
 #include "MythSaveSubsystem.h"
 #include "MythSaveGame.h"
+#include "MythSaveStorage.h"
+#include "Async/Async.h"
+#include "Engine/GameInstance.h"
 #include "Kismet/GameplayStatics.h"
 #include "UObject/Package.h"
 
@@ -7,6 +10,12 @@ void UMythSaveSubsystem::Initialize(FSubsystemCollectionBase& Collection)
 {
     Super::Initialize(Collection);
     ReloadFromDisk();
+}
+
+void UMythSaveSubsystem::Deinitialize()
+{
+    // Worker owns its serialized byte array and checks a weak pointer before callback.
+    Super::Deinitialize();
 }
 
 void UMythSaveSubsystem::MigrateLoadedSave()
@@ -27,23 +36,33 @@ void UMythSaveSubsystem::MigrateLoadedSave()
 
 bool UMythSaveSubsystem::ReloadFromDisk()
 {
-    if (bSaving) return false; // Never replace a snapshot during an active write.
-    CurrentSave = Cast<UMythSaveGame>(UGameplayStatics::LoadGameFromSlot(SlotName,0));
-    if (!CurrentSave)
+    if (bSaving) return false; // Do not race an active disk write.
+    const FMythSaveReadResult Read = FMythSaveStorage::ReadBest(FMythSaveStorage::DefaultBasePath());
+    if (Read.Status == EMythSaveReadStatus::Corrupt)
     {
-        CurrentSave = Cast<UMythSaveGame>(UGameplayStatics::CreateSaveGameObject(UMythSaveGame::StaticClass()));
-        if (CurrentSave) CurrentSave->Campaign.ChapterId = TEXT("CH01");
-    }
-    if (!CurrentSave) return false;
-    if (CurrentSave->SchemaVersion > 2)
-    {
-        UE_LOG(LogTemp,Error,TEXT("MythARPG: unsupported future save version %d"),CurrentSave->SchemaVersion);
-        CurrentSave = nullptr;
+        UE_LOG(LogTemp, Error, TEXT("MythARPG save is corrupt; keeping existing files for recovery."));
         return false;
     }
+    UMythSaveGame* Candidate = nullptr;
+    if (Read.Status == EMythSaveReadStatus::Missing)
+        Candidate = Cast<UMythSaveGame>(UGameplayStatics::CreateSaveGameObject(UMythSaveGame::StaticClass()));
+    else
+        Candidate = Cast<UMythSaveGame>(UGameplayStatics::LoadGameFromMemory(Read.Bytes));
+    if (!Candidate) return false;
+    if (Candidate->SchemaVersion > 2)
+    {
+        UE_LOG(LogTemp, Error, TEXT("MythARPG: unsupported future save version %d"), Candidate->SchemaVersion);
+        return false;
+    }
+    CurrentSave = Candidate;
     bDirty = false;
     MutationRevision = 0;
     MigrateLoadedSave();
+    if (Read.Status == EMythSaveReadStatus::RecoveredOlderGeneration)
+        UE_LOG(LogTemp, Warning, TEXT("MythARPG recovered a previous valid save generation."));
+    // Legacy slots migrate into new generation files at next safe save boundary.
+    if (Read.Status != EMythSaveReadStatus::Missing && Read.ActiveIndex == INDEX_NONE)
+        bDirty = true;
     return true;
 }
 
@@ -81,7 +100,7 @@ bool UMythSaveSubsystem::ValidateSnapshot(const FMythCampaignSnapshot& S) const
 
 bool UMythSaveSubsystem::SetSnapshot(const FMythCampaignSnapshot& NewSnapshot,bool bFlushNow)
 {
-    if (!CurrentSave || !ValidateSnapshot(NewSnapshot)) return false;
+    if (!CurrentSave || (bFlushNow && bSaving) || !ValidateSnapshot(NewSnapshot)) return false;
     CurrentSave->Campaign = NewSnapshot;
     ++MutationRevision;
     bDirty = true;
@@ -89,11 +108,19 @@ bool UMythSaveSubsystem::SetSnapshot(const FMythCampaignSnapshot& NewSnapshot,bo
     return !bFlushNow || FlushToDisk();
 }
 
+bool UMythSaveSubsystem::SerializeSnapshot(TArray<uint8>& OutBytes) const
+{
+    // UObject serialization belongs to the game thread; workers do file I/O only.
+    return CurrentSave && UGameplayStatics::SaveGameToMemory(CurrentSave, OutBytes);
+}
+
 bool UMythSaveSubsystem::FlushToDisk()
 {
     if (!CurrentSave || bSaving) return false;
     if (!bDirty) return true;
-    const bool bSuccess = UGameplayStatics::SaveGameToSlot(CurrentSave,SlotName,0);
+    TArray<uint8> Bytes;
+    const bool bSuccess = SerializeSnapshot(Bytes) &&
+        FMythSaveStorage::WriteNext(FMythSaveStorage::DefaultBasePath(), Bytes);
     if (bSuccess) bDirty = false;
     OnSaveFinished.Broadcast(bSuccess);
     return bSuccess;
@@ -104,19 +131,26 @@ bool UMythSaveSubsystem::RequestAsyncSave()
     if (!CurrentSave) return false;
     if (bSaving) { bQueuedSave = true; return true; }
     if (!bDirty) return true;
-    PendingSave = DuplicateObject<UMythSaveGame>(CurrentSave,GetTransientPackage());
-    if (!PendingSave) return false;
+    TArray<uint8> Bytes;
+    if (!SerializeSnapshot(Bytes)) return false;
     bSaving = true;
     InFlightRevision = MutationRevision;
-    const FAsyncSaveGameToSlotDelegate Done = FAsyncSaveGameToSlotDelegate::CreateUObject(this,&UMythSaveSubsystem::OnAsyncSaveCompleted);
-    UGameplayStatics::AsyncSaveGameToSlot(PendingSave,SlotName,0,Done);
+    const FString Path = FMythSaveStorage::DefaultBasePath();
+    const TWeakObjectPtr<UMythSaveSubsystem> WeakThis(this);
+    Async(EAsyncExecution::ThreadPool, [WeakThis, Path, Bytes = MoveTemp(Bytes)]() mutable
+    {
+        const bool bOK = FMythSaveStorage::WriteNext(Path, Bytes);
+        AsyncTask(ENamedThreads::GameThread, [WeakThis, bOK]()
+        {
+            if (UMythSaveSubsystem* Sub = WeakThis.Get()) Sub->OnAsyncSaveCompleted(bOK);
+        });
+    });
     return true;
 }
 
-void UMythSaveSubsystem::OnAsyncSaveCompleted(const FString& Slot,int32 UserIndex,bool bSuccess)
+void UMythSaveSubsystem::OnAsyncSaveCompleted(bool bSuccess)
 {
     bSaving = false;
-    PendingSave = nullptr;
     if (bSuccess && InFlightRevision == MutationRevision) bDirty = false;
     const bool bRetry = bQueuedSave || (bSuccess && bDirty);
     bQueuedSave = false;

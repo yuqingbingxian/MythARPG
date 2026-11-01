@@ -8,8 +8,8 @@ Status labels: `source` = implemented source but uncompiled, `contract` = API on
 | Combat input/combo/stamina/poise | source v0.2 | Montage/warp/defense/finisher validation |
 | Boss data and attack director | source v0.3 | Phase transaction, arena reset, ability pools |
 | AI | prototype + director | Perception/StateTree/EQS/path edge cases |
-| Save/campaign | source v0.3 | Backup/atomic replace/checksum, migration fixtures |
-| Chapter registry | source v0.3 | Async load/travel state machine and failure recovery |
+| Save/campaign | source v0.4 dual-generation/checksum/recovery | Engine and power-loss failure injection, cloud/platform adapters, slot UI |
+| Chapter registry | source v0.4 soft-map travel state machine | Map-load timeouts, packaging validation, crash startup recovery |
 | World persistent actors | source v0.3 | Editor GUID validation, per-chapter state partitions |
 | Inventory/equip/currency | source v0.3 | Equipment attribute effects, item use, UI, validation |
 | Crafting/shop | source v0.3 | Selling, restock, pricing modifiers, rollback tests |
@@ -18,7 +18,7 @@ Status labels: `source` = implemented source but uncompiled, `contract` = API on
 | Interact and checkpoint | source v0.3 | Multi-option targeting, exact spawn registry |
 | Audio/gameflow | source v0.3 | Mix states, cinematic input/Sequencer integration |
 | UI/HUD/settings | contract | UI routing, HUD ViewModels, persistent settings |
-| Editor tooling | pending | Data validators, graph inspectors, persistent ID lint |
+| Editor tooling | source v0.4 manual audits | CI commandlets, cross-map ID validation, diagnostics panel |
 | Automated tests | source (unit subset) | PIE and functional/load/save tests in engine |
 | Release | pending | Packaging, crash capture, profiling, localization |
 

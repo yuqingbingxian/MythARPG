@@ -10,5 +10,8 @@ jobs:
       - uses: actions/setup-python@v5
         with:
           python-version: '3.12'
-      - name: Check source structure
-        run: python Scripts/verify_structure.py
+      - name: Check source structure and registered modules
+        run: |
+          python Scripts/verify_structure.py
+          python Scripts/verify_systems.py
+          python Scripts/verify_foundation_v04.py

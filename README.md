@@ -28,3 +28,8 @@ python Scripts/verify_systems.py
 
 Do not commit `Binaries/`, `Intermediate/`, `Saved/` or `DerivedDataCache/`.
 Add future `.uasset`/`.umap` files via Git LFS per `.gitattributes`.
+
+### v0.4 foundation (source-only)
+
+See [`Docs/11_FOUNDATION_V04.md`](Docs/11_FOUNDATION_V04.md) for crash-tolerant PC saves,
+chapter travel and editor content audits. Requires an actual UE 5.8 build and runtime tests.

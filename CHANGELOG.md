@@ -1,3 +1,11 @@
+## v0.4 — Shared reliability & editor audits (source-only, uncompiled)
+- PC dual-generation checksummed campaign saves; legacy .sav migration and corrupt-generation fallback.
+- UObject serialization on game thread; worker performs file I/O, with queued revision save.
+- Async soft-map chapter travel coordinator, event-driven phase transitions and rollback hook.
+- Editor-only MythEditorTools with catalog, quest, dialogue, skill and persistent-ID checks.
+- Save corruption automation test, static source audit and integration design in Docs/11_FOUNDATION_V04.md.
+- No Chapter01 content, no game art, no ZIP archives committed.
+
 # Changelog
 
 ## v0.3 - Shared non-chapter runtime groundwork

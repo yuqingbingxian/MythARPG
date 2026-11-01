@@ -13,6 +13,7 @@ class MYTHFOUNDATIONRUNTIME_API UMythSaveSubsystem : public UGameInstanceSubsyst
     GENERATED_BODY()
 public:
     virtual void Initialize(FSubsystemCollectionBase& Collection) override;
+    virtual void Deinitialize() override;
     UPROPERTY(BlueprintAssignable,Category="Save") FMythSaveFinished OnSaveFinished;
     UFUNCTION(BlueprintCallable,Category="Save") bool ReloadFromDisk();
     UFUNCTION(BlueprintPure,Category="Save") FMythCampaignSnapshot GetSnapshot() const;
@@ -21,6 +22,7 @@ public:
     UFUNCTION(BlueprintCallable,Category="Save") bool FlushToDisk();
     UFUNCTION(BlueprintCallable,Category="Save") bool RequestAsyncSave();
     UFUNCTION(BlueprintPure,Category="Save") bool IsDirty() const { return bDirty; }
+    UFUNCTION(BlueprintPure,Category="Save") bool IsSaveInProgress() const { return bSaving; }
     // Kept for compatibility with the v0.2 character/Boss APIs.
     UFUNCTION(BlueprintCallable,Category="Save") bool SavePlayerState(const FTransform& Transform,float Health);
     UFUNCTION(BlueprintCallable,Category="Save") bool RecordBossDefeat(FName BossId);
@@ -28,7 +30,7 @@ public:
     UFUNCTION(BlueprintPure,Category="Save") bool GetSavedPlayerState(FTransform& OutTransform,float& OutHealth) const;
 private:
     UPROPERTY(Transient) TObjectPtr<UMythSaveGame> CurrentSave;
-    UPROPERTY(Transient) TObjectPtr<UMythSaveGame> PendingSave;
+    /** In-flight save bytes are owned by the async worker, never by a mutable UObject. */
     bool bDirty = false;
     bool bSaving = false;
     bool bQueuedSave = false;
@@ -37,5 +39,6 @@ private:
     const FString SlotName = TEXT("Campaign_00");
     bool ValidateSnapshot(const FMythCampaignSnapshot& Value) const;
     void MigrateLoadedSave();
-    void OnAsyncSaveCompleted(const FString& Slot, int32 UserIndex, bool bSuccess);
+    bool SerializeSnapshot(TArray<uint8>& OutBytes) const;
+    void OnAsyncSaveCompleted(bool bSuccess);
 };

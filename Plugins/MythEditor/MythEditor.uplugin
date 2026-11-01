@@ -1,0 +1,10 @@
+{
+  "FileVersion": 3,
+  "Version": 1,
+  "VersionName": "0.4",
+  "FriendlyName": "Myth ARPG Editor Audits",
+  "Description": "Editor-only validation of cross-chapter data, referenced assets and persistent actors.",
+  "Category": "Editor",
+  "CanContainContent": false,
+  "Modules": [{"Name": "MythEditorTools", "Type": "Editor", "LoadingPhase": "Default"}]
+}
