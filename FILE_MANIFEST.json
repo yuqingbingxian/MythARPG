@@ -1,0 +1,301 @@
+{
+  "project": "MythARPG",
+  "milestone": "v0.2",
+  "engine_association": "5.8",
+  "compiled_with_unreal": false,
+  "created_at_utc": "2026-11-01",
+  "files": [
+    {
+      "path": ".gitignore",
+      "sha256": "8459e3f7656736bbadd0b834ccbf85268f09b10fd9f55db82597161276a672da"
+    },
+    {
+      "path": "CHANGELOG.md",
+      "sha256": "fb7afecb4a46abe3ae43e6a2386416de9d2afd90fd5bfac47218fa83b9fdffe9"
+    },
+    {
+      "path": "Config/DefaultEngine.ini",
+      "sha256": "0d4ee00dfaf12aa6e7c8f5d343ae776fd0ecfb7686bf5ca33ec0281c9f074896"
+    },
+    {
+      "path": "Config/DefaultGameplayTags.ini",
+      "sha256": "4dd7a03cef63058b1126de1d7459fdf346f40c20d68bee309c441668a91db2bb"
+    },
+    {
+      "path": "Config/DefaultInput.ini",
+      "sha256": "057cac3bcaee5ac375c8f34a31e632c0a0319c9a59763f44151028f594054536"
+    },
+    {
+      "path": "Docs/00_SYSTEM_ARCHITECTURE.md",
+      "sha256": "25b7f4b08270ec7c390a7928a871b609fa82c64c380794d1aaff32b7547175d4"
+    },
+    {
+      "path": "Docs/01_CLASS_AND_EVENT_CONTRACTS.md",
+      "sha256": "a7f2424df0837c7ddf26da0e258a4578df85c50258513dadca42adfa02960727"
+    },
+    {
+      "path": "Docs/02_EDITOR_SETUP.md",
+      "sha256": "ddfa692f9853cc4b9cf5ea182e862ca8dfd978fc7f8367f7e31a1b949d05148c"
+    },
+    {
+      "path": "Docs/03_BUILD_PLAN.md",
+      "sha256": "affc12d8cc347a841dc61e66f4ba26c49ea4486aebab2da603d09c1c8ff896e8"
+    },
+    {
+      "path": "Docs/04_SAVE_AND_SHIPPING.md",
+      "sha256": "169c4abf73cabf5f0aec311a1a93d7ef9cce7d26144984ebc8f4334ba320653f"
+    },
+    {
+      "path": "Docs/05_FUTURE_SYSTEM_CONTRACTS.md",
+      "sha256": "9b790c9c540f3f37d42488839816d908019ffd0f1b70ea2b0961bae3879af0e4"
+    },
+    {
+      "path": "Docs/06_COMBAT_V02_DESIGN.md",
+      "sha256": "35537cd3b66670e577b4f4ee1483f92815bdc72b69204064ef837cc2e3074735"
+    },
+    {
+      "path": "Docs/07_EDITOR_SETUP_V02.md",
+      "sha256": "ace4aace8749ea2f2dfb102f2d38d4c52d2e57b13f6ca2da030fe22154d9adad"
+    },
+    {
+      "path": "Docs/08_INTEGRATION_QA.md",
+      "sha256": "eedadc240eb9f6744992f9e6346187c2b7f42f7549f0a9751c754ab6693d5278"
+    },
+    {
+      "path": "MythARPG.uproject",
+      "sha256": "6dbbc4c7c7bb80acf93f4b01c8401902ce7512715929aa6cdf6b2e802b299489"
+    },
+    {
+      "path": "Plugins/MythFoundation/MythFoundation.uplugin",
+      "sha256": "6933c7441419581cb7e4fd1594ad002797a4d36a660116c98563ffe6c6eede99"
+    },
+    {
+      "path": "Plugins/MythFoundation/Source/MythFoundationRuntime/MythFoundationRuntime.Build.cs",
+      "sha256": "17383b077b0743f92678924c6bbdfe982e7d4e940ada7e984cc3392147451468"
+    },
+    {
+      "path": "Plugins/MythFoundation/Source/MythFoundationRuntime/Private/MythEventSubsystem.cpp",
+      "sha256": "63b9f193d2938c0b92021ebc4c066c074bdf7f69ce824a44c0743091e467b8c6"
+    },
+    {
+      "path": "Plugins/MythFoundation/Source/MythFoundationRuntime/Private/MythFoundationRuntime.cpp",
+      "sha256": "baa7a9bca4c0d68c656e3ac3ff2e7194640526a4ccf5e3180ef621cee81f28e5"
+    },
+    {
+      "path": "Plugins/MythFoundation/Source/MythFoundationRuntime/Private/MythSaveSubsystem.cpp",
+      "sha256": "7edf03e85ac3bc06392f8d4c70b393bcbf6523ebde9d06ac9c9c23d149aa367b"
+    },
+    {
+      "path": "Plugins/MythFoundation/Source/MythFoundationRuntime/Public/MythChapterDefinition.h",
+      "sha256": "0f8a199487d686fdcce77c47bc2cbccdc543184ee7c2f21aa94cbbcc990a7810"
+    },
+    {
+      "path": "Plugins/MythFoundation/Source/MythFoundationRuntime/Public/MythEventSubsystem.h",
+      "sha256": "502ecd54692c9adf1a52cf2855bf65076b4f04219cd596f90cd559612b58afc3"
+    },
+    {
+      "path": "Plugins/MythFoundation/Source/MythFoundationRuntime/Public/MythSaveGame.h",
+      "sha256": "848650267bb43d35396750f1830d74d8398be87373099be24e56d3b09eb0e82c"
+    },
+    {
+      "path": "Plugins/MythFoundation/Source/MythFoundationRuntime/Public/MythSaveSubsystem.h",
+      "sha256": "2b18fe6cdbfaa37597795384fac35b2588c55a82448ff73d460ec57e13fb938e"
+    },
+    {
+      "path": "Plugins/MythGameplay/MythGameplay.uplugin",
+      "sha256": "133e034d55fb2f9a14a8c2e5439f42fa7b8034e6223ddaf7e80408369704e88f"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/MythGameplayRuntime.Build.cs",
+      "sha256": "6d9297c2bec0349518f4d181b77fe1a39cf2933ad8ee8a11389fda630dc579f5"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythActionComponent.cpp",
+      "sha256": "681b621ec12d4cbc18882d234013781bb400ccfef453aa94a937983af741b5dc"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythAnimNotifyState_ComboWindow.cpp",
+      "sha256": "aea8e552f680fe403f1a52e10387f1e8897d58ffc96a7217bda817cde29ed9e2"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythAnimNotifyState_DodgeCancelWindow.cpp",
+      "sha256": "4ccf503cf2904ec98f27b784dec742a71674c008ddf5beea30ee5342face1c79"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythAnimNotifyState_HitWindow.cpp",
+      "sha256": "71f400ef15398a52acd6ecb01fa0e37a0c3663b7d53b27770f7bd96b6fa60554"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythAnimNotifyState_IFrameWindow.cpp",
+      "sha256": "c5dff162a40641f8f436ba7e564b50c7993bc2a87cfa46e244385e921431d64d"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythAttributeSet.cpp",
+      "sha256": "eb4a6babcad9e07131e40a102b2f481944063a89ca0e079358be10c211ba49e5"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythBossCharacter.cpp",
+      "sha256": "999130e6fe859b5ab604340cf3f2cb2e6a4c236b940aa57d17e19527deed65b6"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythCombatCharacter.cpp",
+      "sha256": "72f8634a934068008164e6b51b9ffd13514ede30f042a56125a9b023638efefe"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythComboGraph.cpp",
+      "sha256": "7f6cbc7c45b94e8234b03038d39956fbb6ddea61ec4c1c27640b62aacfb0ae49"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythDamageEffect.cpp",
+      "sha256": "59c863b7ea844a40d348f960f045277a4ac3829f7d331661d877cd3b803b891e"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythDodgeAbility.cpp",
+      "sha256": "5da9c924531402a63e003ea56e292799b306517539d52e7c35e45ad25171c6da"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythEnemyAIController.cpp",
+      "sha256": "835abc28e4338af026e700ea2b4c078128f2d625dcc7c56b9e03c6bd92f0d133"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythEnemyCharacter.cpp",
+      "sha256": "24d757ff9b15f9a0b394869f8ae3b14ce04e4e3176e7bca423e1fded375f64d9"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythGameplayRuntime.cpp",
+      "sha256": "c527894d43c78e3507f5879c16c00b29bda861d0c19457829f388ccfe9efc153"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythLockOnComponent.cpp",
+      "sha256": "30e8f87ad1a7c988a1d8b1f218714494cd381263f97588b03eae8c0ff2800a1b"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythMeleeAbility.cpp",
+      "sha256": "e04dfe10b4243fbbe1f598a22d5f24f072543ad84c6db4fb2f81a503ecc34972"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythPlayerCharacter.cpp",
+      "sha256": "2bf92772b109c4adf85a3a9381d9293a1ffd91b453bdefdbc0524d1d3b6382d3"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/MythWeaponTraceComponent.cpp",
+      "sha256": "bb61886d177fde114c513a6fdef1b84c81b736a4079dcad9d107c5b109afcda8"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/Tests/MythCombatMathTest.cpp",
+      "sha256": "0539fc18f5cb0334ef2c141d4de03e75c25c89a6ff44d814a618ed98e2d5d638"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Private/Tests/MythComboGraphTest.cpp",
+      "sha256": "48371814efb96649f990bccd5fed57521ab5f614d4c337edb25f08a5e55b3c6a"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythActionComponent.h",
+      "sha256": "716087001d17d535d9c5ba9e79bd28049b5354c33fd1d915e3978e841369f032"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythAnimNotifyState_ComboWindow.h",
+      "sha256": "79a26e4380cf0429ccd343af643b0d96b64eabeee8fbe7c81cfcde71e5b40ca3"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythAnimNotifyState_DodgeCancelWindow.h",
+      "sha256": "eda5f4e2202a544300050701873b91ab7d5c647962e2c83f4eb003a141c1e979"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythAnimNotifyState_HitWindow.h",
+      "sha256": "3f75e98db89da53e6cfb51100b2b67a7492af28b57f2a9ab037556b11dbcec70"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythAnimNotifyState_IFrameWindow.h",
+      "sha256": "d2074c855725b88f055b412841bd4c38e9bd17fa70422351b59cfb62970eebf4"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythAttributeSet.h",
+      "sha256": "e1474802c09c0dd9731de062cc36f08366e4aa43c2f91ae551172c7864722f62"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythBossCharacter.h",
+      "sha256": "270f2a90031087bae1f8b3d05a389c1ad936ca17efe61db9c5230d29404574cd"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythCombatCharacter.h",
+      "sha256": "b41732175a85532d6c05352da71326d327a97a6280890c7437520feeca2bf407"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythCombatMath.h",
+      "sha256": "2c085afe4118da38a7dfd4fe377f7695a2a6a30179f8f4fb71ebe365269d7e78"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythCombatantDefinition.h",
+      "sha256": "7313f42862aa27af400baf5333c6940bd560a616d5076b3fd9b001b1b240beb3"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythComboGraph.h",
+      "sha256": "7bfc9fdec8ca2015cecbb2f086a71fb5f82fddba59d3bd56eee41d01269bfd27"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythDamageEffect.h",
+      "sha256": "a738e8b07cc64009f01509bc23c99f0c5d0541dcfcca321cdea1427b8c5bafde"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythDodgeAbility.h",
+      "sha256": "c70374737f42187acacc6ddb81cf5ca700f3a568761f40ee474d570a74264cde"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythEnemyAIController.h",
+      "sha256": "6229f5605ac1cf9c5249e2c92af49b5223a900d999bfeebcdd5c0856113447d1"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythEnemyCharacter.h",
+      "sha256": "aa9050c0e2cf8098739391e6999cdf6d8b10d1c4fd36fd1dfb7a6c08e6d65fb6"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythLockOnComponent.h",
+      "sha256": "7f01582517f24c9e0bf422438260cf3acd54588f8769b8dd3420c391020add76"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythMeleeAbility.h",
+      "sha256": "8e8b29c87ad71ad88267ec8792bf1a5de1fd3a15bf115cde355a6e000c0571ba"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythPlayerCharacter.h",
+      "sha256": "252fe5f3111e1f44a9dbb507bb58ff30712a66162c427a53f151979e1516d672"
+    },
+    {
+      "path": "Plugins/MythGameplay/Source/MythGameplayRuntime/Public/MythWeaponTraceComponent.h",
+      "sha256": "74bb38d8aeb7662f627c4af668c3438444f6e0fa5d8d6359933d8e6282c6ed78"
+    },
+    {
+      "path": "README.md",
+      "sha256": "1cfce741ae2ce68034537d7821fb994f4c805519ec29b5699456497ec6134d49"
+    },
+    {
+      "path": "Scripts/verify_structure.py",
+      "sha256": "866c3373c53ec7f74871a82b46f8de4c3a593d521bf2f909d24876562bebf85e"
+    },
+    {
+      "path": "Source/MythARPG/MythARPG.Build.cs",
+      "sha256": "35358be0e16badf38035c488fb64052ac3e1a560cc853bdec8a431a717f33f98"
+    },
+    {
+      "path": "Source/MythARPG/MythARPG.cpp",
+      "sha256": "09bb878dcf22d7c44c777b2217735ed35b6e8e69bd231d3556aab504af84e288"
+    },
+    {
+      "path": "Source/MythARPG/MythGameMode.cpp",
+      "sha256": "8da03b020e2c4f21bd0aa0edf5f8791a73926365b51b00c7a98be9a8f1a604ee"
+    },
+    {
+      "path": "Source/MythARPG/MythGameMode.h",
+      "sha256": "667fb263ceb050a3172ca11adb8a453a058b1c74165461aa93b69b004fd8aff4"
+    },
+    {
+      "path": "Source/MythARPG.Target.cs",
+      "sha256": "5c30fea950a36f73abdb7e0cd56101a79c911f3a35cf1968b41d4e63b676d6b1"
+    },
+    {
+      "path": "Source/MythARPGEditor.Target.cs",
+      "sha256": "9e27a3b643f980da6cb604c55037fa0c9436d7c657826ebecb9825222aae6029"
+    }
+  ]
+}

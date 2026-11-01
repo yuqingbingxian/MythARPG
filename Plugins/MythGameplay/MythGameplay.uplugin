@@ -1,0 +1,29 @@
+{
+  "FileVersion": 3,
+  "Version": 2,
+  "VersionName": "0.2",
+  "FriendlyName": "Myth Gameplay",
+  "Category": "Gameplay",
+  "CanContainContent": false,
+  "Plugins": [
+    {
+      "Name": "MythFoundation",
+      "Enabled": true
+    },
+    {
+      "Name": "GameplayAbilities",
+      "Enabled": true
+    },
+    {
+      "Name": "EnhancedInput",
+      "Enabled": true
+    }
+  ],
+  "Modules": [
+    {
+      "Name": "MythGameplayRuntime",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}

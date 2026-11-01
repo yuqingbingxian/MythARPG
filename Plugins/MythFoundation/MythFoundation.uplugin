@@ -1,0 +1,15 @@
+{
+  "FileVersion": 3,
+  "Version": 2,
+  "VersionName": "0.2",
+  "FriendlyName": "Myth Foundation",
+  "Category": "Gameplay",
+  "CanContainContent": false,
+  "Modules": [
+    {
+      "Name": "MythFoundationRuntime",
+      "Type": "Runtime",
+      "LoadingPhase": "Default"
+    }
+  ]
+}
